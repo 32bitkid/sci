@@ -13,39 +13,39 @@ import (
 type RType uint8
 
 const (
-	ResourceTypeView RType = iota
-	ResourceTypePic
-	ResourceTypeScript
-	ResourceTypeText
-	ResourceTypeSound
-	ResourceTypeMemory
-	ResourceTypeVocab
-	ResourceTypeFont
-	ResourceTypeCursor
-	ResourceTypePatch
+	TypeView   RType = iota
+	TypePic
+	TypeScript
+	TypeText
+	TypeSound
+	TypeMemory
+	TypeVocab
+	TypeFont
+	TypeCursor
+	TypePatch
 )
 
 func (t RType) String() string {
 	switch t {
-	case ResourceTypeView:
+	case TypeView:
 		return "Type(View)"
-	case ResourceTypePic:
+	case TypePic:
 		return "Type(Pic)"
-	case ResourceTypeScript:
+	case TypeScript:
 		return "Type(Script)"
-	case ResourceTypeText:
+	case TypeText:
 		return "Type(Text)"
-	case ResourceTypeSound:
+	case TypeSound:
 		return "Type(Sound)"
-	case ResourceTypeMemory:
+	case TypeMemory:
 		return "Type(Memory)"
-	case ResourceTypeVocab:
+	case TypeVocab:
 		return "Type(Vocab)"
-	case ResourceTypeFont:
+	case TypeFont:
 		return "Type(Font)"
-	case ResourceTypeCursor:
+	case TypeCursor:
 		return "Type(Cursor)"
-	case ResourceTypePatch:
+	case TypePatch:
 		return "Type(Patch)"
 	}
 	return "Type(Invalid)"
