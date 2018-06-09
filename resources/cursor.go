@@ -1,9 +1,8 @@
 package resources
 
 import (
-	"bytes"
 	"encoding/binary"
-	"log"
+	"io"
 )
 
 type Point struct {
@@ -17,19 +16,30 @@ type Cursor struct {
 	Color        [16]uint16
 }
 
-func NewCursor(resource Content) error {
-	r := bytes.NewReader(resource)
-	var cursor Cursor
-	if err := binary.Read(r, binary.LittleEndian, &cursor); err != nil {
-		return err
+func (c Cursor) String() string {
+	str := ""
+	for i := 0; i < 256; i++ {
+		x := uint16(i & 0xF)
+		y := uint16(i >> 4)
+
+		tr := (c.Transparency[y] >> x) & 1 == 1
+		clr := (c.Color[y] >> x) & 1 == 1
+		switch {
+		case tr:
+			str += " "
+		case clr:
+			str += "\u2588"
+		default:
+			str += "\u2591"
+		}
+		if x == 15 {
+			str += "\n"
+		}
 	}
-	println(cursor.X, cursor.Y)
-	for _, v := range cursor.Transparency {
-		log.Printf("%016b", v)
-	}
-	log.Println("----")
-	for _, v := range cursor.Color {
-		log.Printf("%016b", v)
-	}
-	return nil
+	return str
+}
+
+func ReadCursor(reader io.Reader) (cursor Cursor, err error) {
+	err = binary.Read(reader, binary.LittleEndian, &cursor)
+	return
 }
