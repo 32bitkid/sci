@@ -34,6 +34,7 @@ func (g Group) GIF() *gif.GIF {
 			rect.Max.Y = int(s.Height) + int(s.Y)
 		}
 	}
+
 	for _, s := range g.Sprites {
 		srcRect := image.Rect(
 			0, 0,
@@ -41,9 +42,9 @@ func (g Group) GIF() *gif.GIF {
 		)
 
 		source := &image.Paletted{
-			Pix: s.Bitmap,
-			Stride: int(s.Width),
-			Rect: srcRect,
+			Pix:     s.Bitmap,
+			Stride:  int(s.Width),
+			Rect:    srcRect,
 			Palette: egaPalette,
 		}
 
@@ -76,7 +77,7 @@ func (g Group) GIF() *gif.GIF {
 		)
 
 		images = append(images, img)
-		delays = append(delays, 0)
+		delays = append(delays, 8)
 		dispose = append(dispose, gif.DisposalPrevious)
 	}
 

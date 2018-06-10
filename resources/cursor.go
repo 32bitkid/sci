@@ -22,8 +22,8 @@ func (c Cursor) String() string {
 		x := uint16(i & 0xF)
 		y := uint16(i >> 4)
 
-		tr := (c.Transparency[y] >> x) & 1 == 1
-		clr := (c.Color[y] >> x) & 1 == 1
+		tr := (c.Transparency[y]>>x)&1 == 1
+		clr := (c.Color[y]>>x)&1 == 1
 		switch {
 		case tr:
 			str += " "

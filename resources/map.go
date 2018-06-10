@@ -13,7 +13,7 @@ import (
 type RType uint8
 
 const (
-	TypeView   RType = iota
+	TypeView RType = iota
 	TypePic
 	TypeScript
 	TypeText
