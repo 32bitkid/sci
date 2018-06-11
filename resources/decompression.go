@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/binary"
 	"fmt"
+	"github.com/32bitkid/bitreader"
 )
 
 type huffmanNodes struct {
@@ -13,7 +14,7 @@ type huffmanNodes struct {
 
 type huffmanState struct {
 	nodes []huffmanNodes
-	br    *bitreader
+	br    bitreader.BitReader8
 }
 
 func (h *huffmanState) Next() (uint8, bool, error) {
@@ -29,7 +30,7 @@ func (h *huffmanState) next(idx int) (uint8, bool, error) {
 		return value, false, nil
 	}
 
-	bit, err := h.br.read1()
+	bit, err := h.br.Read1()
 	if err != nil {
 		return 0, false, err
 	}
@@ -42,7 +43,7 @@ func (h *huffmanState) next(idx int) (uint8, bool, error) {
 	}
 
 	if next == 0 {
-		literal, err := h.br.read8(8)
+		literal, err := h.br.Read8(8)
 		return literal, true, err
 	}
 
@@ -64,7 +65,7 @@ func huffman(src *bufio.Reader, dest []uint8) error {
 	binary.Read(src, binary.LittleEndian, &nodes)
 
 	huffman := huffmanState{
-		br:    newBitReader(src),
+		br:    bitreader.NewReader(src),
 		nodes: nodes,
 	}
 
