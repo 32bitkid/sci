@@ -2,7 +2,6 @@ package resources
 
 import (
 	"bufio"
-	"bytes"
 	"compress/lzw"
 	"encoding/binary"
 	"fmt"
@@ -63,19 +62,27 @@ type Mapping struct {
 	Offset ROffset
 }
 
+type CompressionMethod uint16
+
+const (
+	CompressionNone    CompressionMethod = 0
+	CompressionLZW                       = 1
+	CompressionHuffman                   = 2
+)
+
 type Header struct {
-	Id                uint16
-	CompressedSize    uint16
-	DecompressedSize  uint16
-	CompressionMethod uint16
+	Id               uint16
+	CompressedSize   uint16
+	DecompressedSize uint16
+	CompressionMethod
 }
 
-type Content struct {
-	Mapping
-	io.ReadSeeker
+type Resource struct {
+	details Mapping
+	bytes   []uint8
 }
 
-func (res Mapping) Load(root string) (*Content, error) {
+func (res Mapping) Load(root string) (*Resource, error) {
 	filename := path.Join(root, fmt.Sprintf("RESOURCE.%03d", res.File))
 	file, err := os.Open(filename)
 	if err != nil {
@@ -94,39 +101,27 @@ func (res Mapping) Load(root string) (*Content, error) {
 	binary.Read(src, binary.LittleEndian, &header)
 
 	switch header.CompressionMethod {
-	case 0:
-		buffer := make([]byte, header.DecompressedSize)
+	case CompressionNone:
+		buffer := make([]uint8, header.DecompressedSize)
 		if _, err := io.ReadFull(src, buffer); err != nil {
 			return nil, err
 		}
-		return &Content{
+		return &Resource{
 			res,
-			bytes.NewReader(buffer),
+			buffer,
 		}, nil
-	case 1:
-		buffer := make([]byte, header.DecompressedSize)
+	case CompressionLZW:
+		buffer := make([]uint8, header.DecompressedSize)
 		r := lzw.NewReader(src, 0, 8)
 		defer r.Close()
 		if _, err := io.ReadFull(r, buffer); err != nil {
 			return nil, err
 		}
-		return &Content{
+		return &Resource{
 			res,
-			bytes.NewReader(buffer),
+			buffer,
 		}, nil
-	case 2:
-		_, err := src.ReadByte()
-		if err != nil {
-			return nil, err
-		}
-
-		rawT, err := src.ReadByte()
-		if err != nil {
-			return nil, err
-		}
-
-		_ = int16(rawT) | 0x100
-
+	case CompressionHuffman:
 		return nil, fmt.Errorf("unsupported decompression: %d", header.CompressionMethod)
 	}
 

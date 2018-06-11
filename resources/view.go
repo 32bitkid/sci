@@ -1,11 +1,11 @@
 package resources
 
 import (
+	"bytes"
 	"encoding/binary"
 	"image"
 	"image/draw"
 	"image/gif"
-	"io"
 )
 
 type Group struct {
@@ -104,7 +104,9 @@ type Sprite struct {
 	SpriteDetails
 }
 
-func ReadView(r io.ReadSeeker) ([]Group, error) {
+func ReadView(res *Resource) ([]Group, error) {
+	// TODO type check
+	r := bytes.NewReader(res.bytes)
 	var header struct {
 		Groups   uint16
 		Mirrored uint16

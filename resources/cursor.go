@@ -1,8 +1,8 @@
 package resources
 
 import (
+	"bytes"
 	"encoding/binary"
-	"io"
 )
 
 type Point struct {
@@ -39,7 +39,8 @@ func (c Cursor) String() string {
 	return str
 }
 
-func ReadCursor(reader io.Reader) (cursor Cursor, err error) {
+func ReadCursor(res *Resource) (cursor Cursor, err error) {
+	reader := bytes.NewReader(res.bytes)
 	err = binary.Read(reader, binary.LittleEndian, &cursor)
 	return
 }

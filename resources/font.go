@@ -1,9 +1,9 @@
 package resources
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
-	"io"
 	"strings"
 )
 
@@ -34,7 +34,9 @@ func (c Character) String() string {
 	return strings.Replace(strings.Replace(result, "0", " ", -1), "1", "\u2588", -1)
 }
 
-func ReadFont(r io.ReadSeeker) (*Font, error) {
+func ReadFont(res *Resource) (*Font, error) {
+	r := bytes.NewReader(res.bytes)
+
 	type fontHeader struct {
 		_          [2]uint8
 		Characters uint16
