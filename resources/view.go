@@ -35,6 +35,9 @@ func (g Group) GIF() *gif.GIF {
 		}
 	}
 
+	offset := rect.Min
+	rect = rect.Sub(rect.Min)
+
 	for _, s := range g.Sprites {
 		srcRect := image.Rect(
 			0, 0,
@@ -64,10 +67,10 @@ func (g Group) GIF() *gif.GIF {
 		draw.DrawMask(
 			img,
 			image.Rect(
-				int(s.X),
-				int(s.Y),
-				int(s.Width)+int(s.X),
-				int(s.Height)+int(s.Y),
+				int(s.X)-offset.X,
+				int(s.Y)-offset.Y,
+				int(s.Width)+int(s.X)-offset.X,
+				int(s.Height)+int(s.Y)-offset.Y,
 			),
 			source,
 			image.ZP,
@@ -77,7 +80,7 @@ func (g Group) GIF() *gif.GIF {
 		)
 
 		images = append(images, img)
-		delays = append(delays, 8)
+		delays = append(delays, 20)
 		dispose = append(dispose, gif.DisposalPrevious)
 	}
 
@@ -168,6 +171,7 @@ func ReadView(r io.ReadSeeker) ([]Group, error) {
 			}
 
 			if mirrored {
+				sprite.X = -sprite.X
 				stride := sprite.Width
 				hStride := stride >> 1
 				for y := uint16(0); y < sprite.Height; y++ {
