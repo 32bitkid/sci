@@ -79,6 +79,7 @@ type Header struct {
 
 type Resource struct {
 	details Mapping
+	header  Header
 	bytes   []uint8
 }
 
@@ -108,6 +109,7 @@ func (res Mapping) Load(root string) (*Resource, error) {
 		}
 		return &Resource{
 			res,
+			header,
 			buffer,
 		}, nil
 	case CompressionLZW:
@@ -119,6 +121,7 @@ func (res Mapping) Load(root string) (*Resource, error) {
 		}
 		return &Resource{
 			res,
+			header,
 			buffer,
 		}, nil
 	case CompressionHuffman:
@@ -128,10 +131,10 @@ func (res Mapping) Load(root string) (*Resource, error) {
 	return nil, fmt.Errorf("cannot read goo %d", header.CompressionMethod)
 }
 
-const idEndToken uint16 = (1 << 16) - 1
-const tailEndToken uint32 = (1 << 32) - 1
-
 func ParseSCI0(root string) ([]Mapping, error) {
+	const idEndToken uint16 = (1 << 16) - 1
+	const tailEndToken uint32 = (1 << 32) - 1
+
 	r, err := os.Open(path.Join(root, "RESOURCE.MAP"))
 	defer r.Close()
 	if err != nil {
