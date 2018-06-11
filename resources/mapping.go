@@ -2,6 +2,7 @@ package resources
 
 import (
 	"bufio"
+	"bytes"
 	"compress/lzw"
 	"encoding/binary"
 	"fmt"
@@ -60,9 +61,6 @@ type Mapping struct {
 	Number RNumber
 	File   RFile
 	Offset ROffset
-
-	id   uint16
-	root string
 }
 
 type Header struct {
@@ -72,10 +70,13 @@ type Header struct {
 	CompressionMethod uint16
 }
 
-type Content []byte
+type Content struct {
+	Mapping
+	io.ReadSeeker
+}
 
-func (res Mapping) Load() (Content, error) {
-	filename := path.Join(res.root, fmt.Sprintf("RESOURCE.%03d", res.File))
+func (res Mapping) Load(root string) (*Content, error) {
+	filename := path.Join(root, fmt.Sprintf("RESOURCE.%03d", res.File))
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, err
@@ -92,18 +93,27 @@ func (res Mapping) Load() (Content, error) {
 	var header Header
 	binary.Read(src, binary.LittleEndian, &header)
 
-	buffer := make(Content, header.DecompressedSize)
 	switch header.CompressionMethod {
 	case 0:
+		buffer := make([]byte, header.DecompressedSize)
 		if _, err := io.ReadFull(src, buffer); err != nil {
 			return nil, err
 		}
+		return &Content{
+			res,
+			bytes.NewReader(buffer),
+		}, nil
 	case 1:
+		buffer := make([]byte, header.DecompressedSize)
 		r := lzw.NewReader(src, 0, 8)
 		defer r.Close()
 		if _, err := io.ReadFull(r, buffer); err != nil {
 			return nil, err
 		}
+		return &Content{
+			res,
+			bytes.NewReader(buffer),
+		}, nil
 	case 2:
 		_, err := src.ReadByte()
 		if err != nil {
@@ -118,26 +128,22 @@ func (res Mapping) Load() (Content, error) {
 		_ = int16(rawT) | 0x100
 
 		return nil, fmt.Errorf("unsupported decompression: %d", header.CompressionMethod)
-	default:
-		return nil, fmt.Errorf("unsupported decompression: %d", header.CompressionMethod)
 	}
 
-	return buffer, nil
+	return nil, fmt.Errorf("cannot read goo %d", header.CompressionMethod)
 }
-
-type ResourceMap []Mapping
 
 const idEndToken uint16 = (1 << 16) - 1
 const tailEndToken uint32 = (1 << 32) - 1
 
-func ParseSCI0(root string) (ResourceMap, error) {
+func ParseSCI0(root string) ([]Mapping, error) {
 	r, err := os.Open(path.Join(root, "RESOURCE.MAP"))
 	defer r.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	var resources ResourceMap
+	var resources []Mapping
 	for {
 		var id uint16
 		if err := binary.Read(r, binary.LittleEndian, &id); err != nil {
@@ -157,8 +163,6 @@ func ParseSCI0(root string) (ResourceMap, error) {
 			Number: RNumber(id & ((1 << 11) - 1)),
 			File:   RFile(tail >> 26),
 			Offset: ROffset(tail & ((1 << 26) - 1)),
-			id:     id,
-			root:   root,
 		})
 	}
 
