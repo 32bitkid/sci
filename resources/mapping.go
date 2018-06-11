@@ -125,7 +125,15 @@ func (res Mapping) Load(root string) (*Resource, error) {
 			buffer,
 		}, nil
 	case CompressionHuffman:
-		return nil, fmt.Errorf("unsupported decompression: %d", header.CompressionMethod)
+		buffer := make([]uint8, header.DecompressedSize)
+		if err := huffman(src, buffer); err != nil {
+			return nil, err
+		}
+		return &Resource{
+			res,
+			header,
+			buffer,
+		}, nil
 	}
 
 	return nil, fmt.Errorf("cannot read goo %d", header.CompressionMethod)
