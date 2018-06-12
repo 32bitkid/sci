@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/32bitkid/bitreader"
 	"image"
+	"math"
 )
 
 type picReader struct {
@@ -139,23 +140,26 @@ const (
 	picDrawControl              = 4
 )
 
+type picState struct {
+	col1           uint8
+	col2           uint8
+	palettes       [4]picPalette
+	drawMode       picDrawMode
+	priority       uint8
+	patternCode    uint8
+	patternTexture uint8
+	control        uint8
+
+	buffer *image.Paletted
+}
+
 func ReadPic(resource *Resource) (image.Image, error) {
 	r := picReader{
 		bitreader.NewReader(bufio.NewReader(bytes.NewReader(resource.bytes))),
 	}
 
-	buffer := image.NewPaletted(image.Rect(0, 0, 320, 200), egaPalette)
-
-	var state = struct {
-		col1           uint8
-		col2           uint8
-		palettes       [4]picPalette
-		drawMode       picDrawMode
-		priority       uint8
-		patternCode    uint8
-		patternTexture uint8
-		control        uint8
-	}{
+	var state = picState{
+		buffer:   image.NewPaletted(image.Rect(0, 0, 320, 200), egaPalette),
 		drawMode: picDrawVisual | picDrawPriority,
 		palettes: [...]picPalette{
 			defaultPalette,
@@ -224,12 +228,7 @@ opLoop:
 					return nil, err
 				}
 
-				line(
-					buffer,
-					x1, y1, x2, y2,
-					state.col1, state.col2,
-				)
-
+				state.line(x1, y1, x2, y2)
 				x1, y1 = x2, y2
 			}
 		case pOpMediumLines:
@@ -249,12 +248,7 @@ opLoop:
 					return nil, err
 				}
 
-				line(
-					buffer,
-					x1, y1, x2, y2,
-					state.col1, state.col2,
-				)
-
+				state.line(x1, y1, x2, y2)
 				x1, y1 = x2, y2
 			}
 		case pOpLongLines:
@@ -274,8 +268,7 @@ opLoop:
 					return nil, err
 				}
 
-				line(buffer, x1, y1, x2, y2, state.col1, state.col2)
-
+				state.line(x1, y1, x2, y2)
 				x1, y1 = x2, y2
 			}
 
@@ -292,7 +285,7 @@ opLoop:
 					return nil, err
 				}
 
-				fill(buffer, x, y, state.col1, state.col2)
+				state.fill(x, y)
 			}
 
 		case pOpSetPattern:
@@ -314,11 +307,7 @@ opLoop:
 			if err != nil {
 				return nil, err
 			}
-			drawPattern(
-				buffer,
-				x, y,
-				state.col1, state.col2,
-			)
+			state.drawPattern(x, y)
 
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
@@ -339,11 +328,7 @@ opLoop:
 				if err != nil {
 					return nil, err
 				}
-				drawPattern(
-					buffer,
-					x, y,
-					state.col1, state.col2,
-				)
+				state.drawPattern(x, y)
 			}
 		case pOpMediumPatterns:
 			if state.patternCode&0x20 != 0 {
@@ -358,11 +343,7 @@ opLoop:
 			if err != nil {
 				return nil, err
 			}
-			drawPattern(
-				buffer,
-				x, y,
-				state.col1, state.col2,
-			)
+			state.drawPattern(x, y)
 
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
@@ -383,11 +364,7 @@ opLoop:
 				if err != nil {
 					return nil, err
 				}
-				drawPattern(
-					buffer,
-					x, y,
-					state.col1, state.col2,
-				)
+				state.drawPattern(x, y)
 			}
 		case pOpAbsolutePatterns:
 			for {
@@ -409,11 +386,7 @@ opLoop:
 				if err != nil {
 					return nil, err
 				}
-				drawPattern(
-					buffer,
-					x, y,
-					state.col1, state.col2,
-				)
+				state.drawPattern(x, y)
 			}
 
 		case pOpOPX:
@@ -459,17 +432,55 @@ opLoop:
 		}
 
 	}
-	return buffer, nil
+	return state.buffer, nil
 }
 
-func fill(buf *image.Paletted, x, y int, col1, col2 uint8) {
-	//fmt.Printf("filling at (%d, %d)\n", x, y)
+func (s *picState) fill(x, y int) {
+	fmt.Printf("filling at (%d, %d)\n", x, y)
 }
 
-func line(buf *image.Paletted, x1, y1, x2, y2 int, col1, col2 uint8) {
-	//fmt.Printf("drawing a line (%d,%d)-(%d,%d)\n", x1, y1, x2, y2)
+func (s *picState) line(x1, y1, x2, y2 int) {
+	dest := s.buffer
+
+	dx := x2 - x1
+	dy := y2 - y1
+	switch {
+	case dx == 0 && dy == 0:
+		dest.Set(x1, y1, dest.Palette[s.col1])
+	case dx == 0:
+		i0, i1 := y1, y2
+		if i0 > i1 {
+			i0, i1 = i1, i0
+		}
+		for i := i0; i < i1; i++ {
+			dest.Set(x1, i, dest.Palette[s.col1])
+		}
+	case dy == 0:
+		i0, i1 := x1, x2
+		if i0 > i1 {
+			i0, i1 = i1, i0
+		}
+		for i := i0; i < i1; i++ {
+			dest.Set(i, y1, dest.Palette[s.col1])
+		}
+	default:
+		// bresenham
+		dErr := math.Abs(float64(dy)/float64(dx))
+		error := float64(0)
+		y := y1
+		xDir := ((dx >> 63) << 1) + 1
+		yDir := ((dy >> 63) << 1) + 1
+		for x := x1; x != x2; x += xDir {
+			dest.Set(x, y, dest.Palette[s.col1])
+			error += dErr
+			if error >= 0.5 {
+				y += yDir
+				error -= 1
+			}
+		}
+	}
 }
 
-func drawPattern(buf *image.Paletted, x1, y1 int, col1, col2 uint8) {
-	//fmt.Printf("drawing a pattern at (%d,%d)\n", x1, y1)
+func (s *picState) drawPattern(x1, y1 int) {
+	fmt.Printf("drawing a pattern at (%d,%d)\n", x1, y1)
 }
