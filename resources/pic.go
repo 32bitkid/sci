@@ -509,6 +509,8 @@ func (s *picState) line(x1, y1, x2, y2 int) {
 				error -= 1
 			}
 		}
+		// last pixel
+		dest.Set(x2, y2, dest.Palette[dither(s.col1, s.col2)])
 	}
 }
 
