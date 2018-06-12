@@ -71,7 +71,7 @@ const (
 )
 
 type Header struct {
-	Id               uint16
+	ID               uint16
 	CompressedSize   uint16
 	DecompressedSize uint16
 	CompressionMethod
