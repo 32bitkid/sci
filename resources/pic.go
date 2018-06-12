@@ -470,7 +470,7 @@ func (s *picState) fill(x, y int) {
 }
 
 func (s *picState) line(x1, y1, x2, y2 int) {
-	dest := s.buffer
+	dst := s.buffer
 
 	dx := x2 - x1
 	dy := y2 - y1
@@ -479,7 +479,7 @@ func (s *picState) line(x1, y1, x2, y2 int) {
 
 	switch {
 	case dx == 0 && dy == 0:
-		dest.Set(x1, y1, dest.Palette[s.col1])
+		dst.Set(x1, y1, dst.Palette[s.col1])
 	case dx == 0:
 		i0, i1 := y1, y2
 		if i0 > i1 {
@@ -487,7 +487,7 @@ func (s *picState) line(x1, y1, x2, y2 int) {
 		}
 		for i := i0; i < i1; i++ {
 			col := dither(s.col1, s.col2)
-			dest.Set(x1, i, dest.Palette[col])
+			dst.Set(x1, i, dst.Palette[col])
 		}
 	case dy == 0:
 		i0, i1 := x1, x2
@@ -496,7 +496,7 @@ func (s *picState) line(x1, y1, x2, y2 int) {
 		}
 		for i := i0; i < i1; i++ {
 			col := dither(s.col1, s.col2)
-			dest.Set(i, y1, dest.Palette[col])
+			dst.Set(i, y1, dst.Palette[col])
 		}
 	default:
 		// bresenham
@@ -507,7 +507,7 @@ func (s *picState) line(x1, y1, x2, y2 int) {
 
 		for x, y := x1, y1; x != x2; x += xDir {
 			col := dither(s.col1, s.col2)
-			dest.Set(x, y, dest.Palette[col])
+			dst.Set(x, y, dst.Palette[col])
 			err += dErr
 			if err >= 0.5 {
 				y += yDir
@@ -515,7 +515,7 @@ func (s *picState) line(x1, y1, x2, y2 int) {
 			}
 		}
 		// last pixel
-		dest.Set(x2, y2, dest.Palette[dither(s.col1, s.col2)])
+		dst.Set(x2, y2, dst.Palette[dither(s.col1, s.col2)])
 	}
 }
 
