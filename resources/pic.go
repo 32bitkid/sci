@@ -152,12 +152,16 @@ var defaultPalette = picPalette{
 
 type picDrawMode uint
 
-func (mode *picDrawMode) Set(flag picDrawMode) {
-	*mode |= flag
+func (mode *picDrawMode) Set(flag picDrawMode, value bool) {
+	if value {
+		*mode |= flag
+	} else {
+		*mode &= ^flag
+	}
 }
 
-func (mode *picDrawMode) Disable(flag picDrawMode) {
-	*mode &= ^flag
+func (mode picDrawMode) Has(flag picDrawMode) bool {
+	return mode & flag == flag
 }
 
 const (
@@ -214,9 +218,9 @@ opLoop:
 			color := state.palettes[pal][index]
 			state.col1 = (color >> 4) & 0x0F
 			state.col2 = (color >> 0) & 0x0F
-			state.drawMode.Set(picDrawVisual)
+			state.drawMode.Set(picDrawVisual, true)
 		case pOpDisableVisual:
-			state.drawMode.Disable(picDrawVisual)
+			state.drawMode.Set(picDrawVisual, false)
 
 		case pOpSetPriority:
 			code, err := r.bits.Read8(8)
@@ -224,9 +228,9 @@ opLoop:
 				return nil, err
 			}
 			state.priority = code & 0xF
-			state.drawMode.Set(picDrawPriority)
+			state.drawMode.Set(picDrawPriority, true)
 		case pOpDisablePriority:
-			state.drawMode.Disable(picDrawPriority)
+			state.drawMode.Set(picDrawPriority, false)
 
 		case pOpSetControl:
 			code, err := r.bits.Read8(8)
@@ -235,7 +239,7 @@ opLoop:
 			}
 			state.control = code & 0xf
 		case pOpDisableControl:
-			state.drawMode.Disable(picDrawControl)
+			state.drawMode.Set(picDrawControl, false)
 
 		case pOpShortLines:
 			x1, y1, err := r.getAbsCoords()
