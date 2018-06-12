@@ -40,7 +40,15 @@ type picReader struct {
 	bits bitreader.BitReader
 }
 
-// format: XXXXYYYYxxxxxxxxyyyyyyyy => XXXXxxxxxxxx, YYYYyyyyyyyy
+// getAbsCoords gets reads an absolute position from the
+// bit-stream. The format is 24-bits long:
+//
+// bits  |
+//  0-3  | high "byte" of x-position
+//  4-7  | high "byte" of y-position
+//  8-15 | low byte of x-position
+// 16-23 | low byte of y-position
+//
 func (p picReader) getAbsCoords() (int, int, error) {
 	code, err := p.bits.Read32(24)
 	if err != nil {
@@ -51,6 +59,13 @@ func (p picReader) getAbsCoords() (int, int, error) {
 	return int(x), int(y), nil
 }
 
+// getRelCoords2 reads a medium length delta from the bit-stream.
+// The total payload is 16-bits long:
+//
+// bits |
+// 0-7  | y-delta
+// 8-15 | x-delta
+//
 func (p picReader) getRelCoords2(x1, y1 int) (int, int, error) {
 	dy, err := p.bits.Read8(8)
 	if err != nil {
