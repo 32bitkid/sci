@@ -178,7 +178,7 @@ type picState struct {
 	priority       uint8
 	patternCode    uint8
 	patternTexture uint8
-	control        uint8
+	controlCode    uint8
 
 	buffer *image.Paletted
 }
@@ -237,7 +237,9 @@ opLoop:
 			if err != nil {
 				return nil, err
 			}
-			state.control = code & 0xf
+			state.drawMode.Set(picDrawControl, true)
+			state.controlCode = code & 0xf
+
 		case pOpDisableControl:
 			state.drawMode.Set(picDrawControl, false)
 
@@ -470,6 +472,11 @@ func (s *picState) fill(x, y int) {
 }
 
 func (s *picState) line(x1, y1, x2, y2 int) {
+	if !s.drawMode.Has(picDrawVisual) {
+		//TODO
+		return
+	}
+
 	dst := s.buffer
 
 	dx := x2 - x1
