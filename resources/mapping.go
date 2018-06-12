@@ -114,7 +114,7 @@ func (res Mapping) Load(root string) (*Resource, error) {
 		}, nil
 	case CompressionLZW:
 		buffer := make([]uint8, header.DecompressedSize)
-		r := lzw.NewReader(src, 0, 8)
+		r := lzw.NewReader(src, lzw.LSB, 8)
 		defer r.Close()
 		if _, err := io.ReadFull(r, buffer); err != nil {
 			return nil, err
