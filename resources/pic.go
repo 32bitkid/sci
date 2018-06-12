@@ -13,9 +13,10 @@ import (
 )
 
 type ditherFn func(a, b uint8) uint8
+
 func create5050Dither() ditherFn {
 	state := false
-	return func(a,b uint8) (val uint8) {
+	return func(a, b uint8) (val uint8) {
 		val = a
 		if state {
 			val = b
@@ -470,7 +471,7 @@ func (s *picState) line(x1, y1, x2, y2 int) {
 	dx := x2 - x1
 	dy := y2 - y1
 
-	var dither ditherFn = create5050Dither()
+	var dither = create5050Dither()
 
 	switch {
 	case dx == 0 && dy == 0:
@@ -495,18 +496,18 @@ func (s *picState) line(x1, y1, x2, y2 int) {
 		}
 	default:
 		// bresenham
-		dErr := math.Abs(float64(dy)/float64(dx))
-		error := float64(0)
-		y := y1
+		dErr := math.Abs(float64(dy) / float64(dx))
+		err := float64(0)
 		xDir := ((dx >> 63) << 1) + 1
 		yDir := ((dy >> 63) << 1) + 1
-		for x := x1; x != x2; x += xDir {
+
+		for x, y := x1, y1; x != x2; x += xDir {
 			col := dither(s.col1, s.col2)
 			dest.Set(x, y, dest.Palette[col])
-			error += dErr
-			if error >= 0.5 {
+			err += dErr
+			if err >= 0.5 {
 				y += yDir
-				error -= 1
+				err -= 1
 			}
 		}
 		// last pixel
