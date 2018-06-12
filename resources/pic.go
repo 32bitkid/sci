@@ -8,7 +8,32 @@ import (
 	"github.com/32bitkid/bitreader"
 	"image"
 	"math"
+	"math/rand"
+	"time"
 )
+
+type ditherFn func(a, b uint8) uint8
+func create5050Dither() ditherFn {
+	state := false
+	return func(a,b uint8) (val uint8) {
+		val = a
+		if state {
+			val = b
+		}
+		state = !state
+		return
+	}
+}
+
+func createNoiseDither() ditherFn {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	return func(a, b uint8) uint8 {
+		if r.Float64() < 0.5 {
+			return b
+		}
+		return a
+	}
+}
 
 type picReader struct {
 	bits bitreader.BitReader
@@ -444,6 +469,9 @@ func (s *picState) line(x1, y1, x2, y2 int) {
 
 	dx := x2 - x1
 	dy := y2 - y1
+
+	var dither ditherFn = create5050Dither()
+
 	switch {
 	case dx == 0 && dy == 0:
 		dest.Set(x1, y1, dest.Palette[s.col1])
@@ -453,7 +481,8 @@ func (s *picState) line(x1, y1, x2, y2 int) {
 			i0, i1 = i1, i0
 		}
 		for i := i0; i < i1; i++ {
-			dest.Set(x1, i, dest.Palette[s.col1])
+			col := dither(s.col1, s.col2)
+			dest.Set(x1, i, dest.Palette[col])
 		}
 	case dy == 0:
 		i0, i1 := x1, x2
@@ -461,7 +490,8 @@ func (s *picState) line(x1, y1, x2, y2 int) {
 			i0, i1 = i1, i0
 		}
 		for i := i0; i < i1; i++ {
-			dest.Set(i, y1, dest.Palette[s.col1])
+			col := dither(s.col1, s.col2)
+			dest.Set(i, y1, dest.Palette[col])
 		}
 	default:
 		// bresenham
@@ -471,7 +501,8 @@ func (s *picState) line(x1, y1, x2, y2 int) {
 		xDir := ((dx >> 63) << 1) + 1
 		yDir := ((dy >> 63) << 1) + 1
 		for x := x1; x != x2; x += xDir {
-			dest.Set(x, y, dest.Palette[s.col1])
+			col := dither(s.col1, s.col2)
+			dest.Set(x, y, dest.Palette[col])
 			error += dErr
 			if error >= 0.5 {
 				y += yDir
