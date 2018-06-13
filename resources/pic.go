@@ -222,6 +222,10 @@ func ReadPic(resource *Resource) (image.Image, error) {
 		},
 	}
 
+	for i := 0; i < (320 * 200); i++ {
+		state.visual.Pix[i] = 0xf
+	}
+
 opLoop:
 	for {
 		op, err := r.bits.Read8(8)
