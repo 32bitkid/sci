@@ -264,9 +264,8 @@ opLoop:
 			if err != nil {
 				return nil, err
 			}
-			state.drawMode.Set(picDrawControl, true)
 			state.controlCode = code & 0xf
-
+			state.drawMode.Set(picDrawControl, true)
 		case pOpDisableControl:
 			state.drawMode.Set(picDrawControl, false)
 
@@ -514,8 +513,17 @@ func (s *picState) drawPattern(cx, cy int) {
 	size := int(s.patternCode & 0x7)
 	isRect := s.patternCode&0x10 != 0
 	solid := s.patternCode&0x20 == 0
-	dst := s.visual
-	drawPattern(dst, cx, cy, size, s.col1, s.col2, isRect, solid)
+
+	if s.drawMode.Has(picDrawVisual) {
+		drawPattern(s.visual, cx, cy, size, s.col1, s.col2, isRect, solid)
+	}
+	if s.drawMode.Has(picDrawPriority) {
+		drawPattern(s.priority, cx, cy, size, s.priorityCode, s.priorityCode, isRect, solid)
+	}
+	if s.drawMode.Has(picDrawControl) {
+		drawPattern(s.control, cx, cy, size, s.controlCode, s.controlCode, isRect, solid)
+	}
+
 }
 
 // (0..256) => i => int(math.Round(math.Sqrt(float64(i) + 0.5)))
