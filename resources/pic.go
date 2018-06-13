@@ -186,16 +186,21 @@ const (
 )
 
 type picState struct {
-	col1           uint8
-	col2           uint8
-	palettes       [4]picPalette
-	drawMode       picDrawMode
-	priority       uint8
+	col1     uint8
+	col2     uint8
+	palettes [4]picPalette
+	drawMode picDrawMode
+
+	priorityCode uint8
+	controlCode  uint8
+
 	patternCode    uint8
 	patternTexture uint8
-	controlCode    uint8
 
-	buffer *image.Paletted
+	visual   *image.Paletted
+	priority *image.Paletted
+	control  *image.Paletted
+	aux      *image.Paletted
 }
 
 func ReadPic(resource *Resource) (image.Image, error) {
@@ -204,7 +209,10 @@ func ReadPic(resource *Resource) (image.Image, error) {
 	}
 
 	var state = picState{
-		buffer:   image.NewPaletted(image.Rect(0, 0, 320, 200), egaPalette),
+		visual:   image.NewPaletted(image.Rect(0, 0, 320, 200), egaPalette),
+		priority: image.NewPaletted(image.Rect(0, 0, 320, 200), gray16Palette),
+		control:  image.NewPaletted(image.Rect(0, 0, 320, 200), egaPalette),
+		aux:      image.NewPaletted(image.Rect(0, 0, 320, 200), egaPalette),
 		drawMode: picDrawVisual | picDrawPriority,
 		palettes: [...]picPalette{
 			defaultPalette,
@@ -242,7 +250,7 @@ opLoop:
 			if err != nil {
 				return nil, err
 			}
-			state.priority = code & 0xF
+			state.priorityCode = code & 0xF
 			state.drawMode.Set(picDrawPriority, true)
 		case pOpDisablePriority:
 			state.drawMode.Set(picDrawPriority, false)
@@ -479,7 +487,7 @@ opLoop:
 		}
 
 	}
-	return state.buffer, nil
+	return state.visual, nil
 }
 
 func (s *picState) fill(x, y int) {
@@ -487,13 +495,51 @@ func (s *picState) fill(x, y int) {
 }
 
 func (s *picState) line(x1, y1, x2, y2 int) {
-	if !s.drawMode.Has(picDrawVisual) {
-		//TODO
-		return
+	if s.drawMode.Has(picDrawVisual) {
+		line(s.visual, x1, y1, x2, y2, s.col1, s.col2)
+	}
+	if s.drawMode.Has(picDrawPriority) {
+		line(s.priority, x1, y1, x2, y2, s.priorityCode, s.priorityCode)
+	}
+	if s.drawMode.Has(picDrawControl) {
+		line(s.control, x1, y1, x2, y2, s.controlCode, s.controlCode)
+	}
+}
+
+func (s *picState) drawPattern(cx, cy int) {
+	size := int(s.patternCode & 0x7)
+	isRect := s.patternCode&0x10 != 0
+	solid := s.patternCode&0x20 == 0
+	dst := s.visual
+	drawPattern(dst, cx, cy, size, s.col1, s.col2, isRect, solid)
+}
+
+func drawPattern(dst *image.Paletted, cx, cy int, size int, col1, col2 uint8, isRect, isSolid bool) {
+	dither := create5050Dither()
+	if !isSolid {
+		dither = createNoiseDither()
 	}
 
-	dst := s.buffer
+	if isRect {
+		for y := -size; y <= size; y++ {
+			for x := -size; x <= size; x++ {
+				col := dither(col1, col2)
+				dst.Set(cx+x, cy+y, dst.Palette[col])
+			}
+		}
+	} else {
+		r2 := size * size
+		for y := -size; y <= size; y++ {
+			sx := int(math.Sqrt(float64(r2 - y*y + 1)))
+			for x := -sx; x <= sx; x++ {
+				col := dither(col1, col2)
+				dst.Set(cx+x, cy+y, dst.Palette[col])
+			}
+		}
+	}
+}
 
+func line(dst *image.Paletted, x1, y1, x2, y2 int, col1, col2 uint8) {
 	dx := x2 - x1
 	dy := y2 - y1
 
@@ -501,14 +547,14 @@ func (s *picState) line(x1, y1, x2, y2 int) {
 
 	switch {
 	case dx == 0 && dy == 0:
-		dst.Set(x1, y1, dst.Palette[s.col1])
+		dst.Set(x1, y1, dst.Palette[col1])
 	case dx == 0:
 		i0, i1 := y1, y2
 		if i0 > i1 {
 			i0, i1 = i1, i0
 		}
 		for i := i0; i < i1; i++ {
-			col := dither(s.col1, s.col2)
+			col := dither(col1, col2)
 			dst.Set(x1, i, dst.Palette[col])
 		}
 	case dy == 0:
@@ -517,7 +563,7 @@ func (s *picState) line(x1, y1, x2, y2 int) {
 			i0, i1 = i1, i0
 		}
 		for i := i0; i < i1; i++ {
-			col := dither(s.col1, s.col2)
+			col := dither(col1, col2)
 			dst.Set(i, y1, dst.Palette[col])
 		}
 	default:
@@ -528,7 +574,7 @@ func (s *picState) line(x1, y1, x2, y2 int) {
 		yDir := ((dy >> 63) << 1) + 1
 
 		for x, y := x1, y1; x != x2; x += xDir {
-			col := dither(s.col1, s.col2)
+			col := dither(col1, col2)
 			dst.Set(x, y, dst.Palette[col])
 			err += dErr
 			if err >= 0.5 {
@@ -537,40 +583,6 @@ func (s *picState) line(x1, y1, x2, y2 int) {
 			}
 		}
 		// last pixel
-		dst.Set(x2, y2, dst.Palette[dither(s.col1, s.col2)])
-	}
-}
-
-func (s *picState) drawPattern(cx, cy int) {
-	if !s.drawMode.Has(picDrawVisual) {
-		//TODO
-		return
-	}
-
-	dst := s.buffer
-	size := int(s.patternCode & 0x7)
-	isRect := int(s.patternCode&0x10) != 0
-	solid := s.patternCode&0x20 == 0
-	dither := create5050Dither()
-	if !solid {
-		dither = createNoiseDither()
-	}
-
-	if isRect {
-		for y := -size; y <= size; y++ {
-			for x := -size; x <= size; x++ {
-				col := dither(s.col1, s.col2)
-				dst.Set(cx+x, cy+y, dst.Palette[col])
-			}
-		}
-	} else {
-		r2 := size * size
-		for y := -size; y <= size; y++ {
-			sx := (int)(math.Sqrt(float64(r2-y*y) + 0.5))
-			for x := -sx; x <= sx; x++ {
-				col := dither(s.col1, s.col2)
-				dst.Set(cx+x, cy+y, dst.Palette[col])
-			}
-		}
+		dst.Set(x2, y2, dst.Palette[dither(col1, col2)])
 	}
 }

@@ -39,3 +39,23 @@ var egaPalette = []color.Color{
 	rgb24Color{0XFFFF55},
 	rgb24Color{0XFFFFFF},
 }
+
+var gray16Palette = []color.Color{
+	color.Gray{0x00},
+	color.Gray{0x11},
+	color.Gray{0x22},
+	color.Gray{0x33},
+	color.Gray{0x44},
+	color.Gray{0x55},
+	color.Gray{0x66},
+	color.Gray{0x77},
+
+	color.Gray{0x88},
+	color.Gray{0x99},
+	color.Gray{0xAA},
+	color.Gray{0xBB},
+	color.Gray{0xCC},
+	color.Gray{0xDD},
+	color.Gray{0xEE},
+	color.Gray{0xFF},
+}
