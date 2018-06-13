@@ -570,15 +570,14 @@ func line(dst *image.Paletted, x1, y1, x2, y2 int, col1, col2 uint8) {
 
 	switch {
 	case dx == 0 && dy == 0:
-		dst.Set(x1, y1, dst.Palette[col1])
+		dst.Pix[y1*dst.Stride+x1] = col1
 	case dx == 0:
 		i0, i1 := y1, y2
 		if i0 > i1 {
 			i0, i1 = i1, i0
 		}
 		for i := i0; i < i1; i++ {
-			col := dither(col1, col2)
-			dst.Set(x1, i, dst.Palette[col])
+			dst.Pix[i*dst.Stride+x1] = dither(col1, col2)
 		}
 	case dy == 0:
 		i0, i1 := x1, x2
@@ -586,26 +585,47 @@ func line(dst *image.Paletted, x1, y1, x2, y2 int, col1, col2 uint8) {
 			i0, i1 = i1, i0
 		}
 		for i := i0; i < i1; i++ {
-			col := dither(col1, col2)
-			dst.Set(i, y1, dst.Palette[col])
+			dst.Pix[y1*dst.Stride+i] = dither(col1, col2)
 		}
+	case dx == dy:
+		dir := ((dx >> 63) << 1) + 1
+		for i := 0; i != dx; i += dir {
+			dst.Pix[(y1+i)*dst.Stride+(x1+i)] = dither(col1, col2)
+		}
+		// last pixel
+		dst.Pix[y2*dst.Stride+x2] = dither(col1, col2)
 	default:
 		// bresenham
-		dErr := math.Abs(float64(dy) / float64(dx))
-		err := float64(0)
-		xDir := ((dx >> 63) << 1) + 1
-		yDir := ((dy >> 63) << 1) + 1
+		if dx > dy {
+			dErr := math.Abs(float64(dy) / float64(dx))
+			err := float64(0)
+			xDir := ((dx >> 63) << 1) + 1
+			yDir := ((dy >> 63) << 1) + 1
 
-		for x, y := x1, y1; x != x2; x += xDir {
-			col := dither(col1, col2)
-			dst.Set(x, y, dst.Palette[col])
-			err += dErr
-			if err >= 0.5 {
-				y += yDir
-				err -= 1
+			for x, y := x1, y1; x != x2; x += xDir {
+				dst.Pix[y*dst.Stride+x] = dither(col1, col2)
+				err += dErr
+				if err >= 0.5 {
+					y += yDir
+					err -= 1
+				}
+			}
+		} else {
+			dErr := math.Abs(float64(dx) / float64(dy))
+			err := float64(0)
+			xDir := ((dx >> 63) << 1) + 1
+			yDir := ((dy >> 63) << 1) + 1
+
+			for x, y := x1, y1; y != y2; y += yDir {
+				dst.Pix[y*dst.Stride+x] = dither(col1, col2)
+				err += dErr
+				if err >= 0.5 {
+					x += xDir
+					err -= 1
+				}
 			}
 		}
 		// last pixel
-		dst.Set(x2, y2, dst.Palette[dither(col1, col2)])
+		dst.Pix[y2*dst.Stride+x2] = dither(col1, col2)
 	}
 }
