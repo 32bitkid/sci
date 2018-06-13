@@ -176,7 +176,7 @@ func (mode *picDrawMode) Set(flag picDrawMode, value bool) {
 }
 
 func (mode picDrawMode) Has(flag picDrawMode) bool {
-	return mode & flag == flag
+	return mode&flag == flag
 }
 
 const (
