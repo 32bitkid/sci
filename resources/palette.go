@@ -13,10 +13,10 @@ func (ega rgb24Color) RGBA() (r, g, b, a uint32) {
 	gb := uint32(ega.RGB >> 8 & 0xFF)
 	bb := uint32(ega.RGB & 0xFF)
 
-	r = rb<<24 | rb<<16 | rb<<8 | rb<<0
-	g = gb<<24 | gb<<16 | gb<<8 | gb<<0
-	b = bb<<24 | bb<<16 | bb<<8 | bb<<0
-	a = 0xFFFFFFFF
+	r = rb<<8 | rb<<0
+	g = gb<<8 | gb<<0
+	b = bb<<8 | bb<<0
+	a = 0xFFFFFF
 	return
 }
 
