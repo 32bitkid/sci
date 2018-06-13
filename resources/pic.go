@@ -584,6 +584,11 @@ func line(dst *image.Paletted, x1, y1, x2, y2 int, col1, col2 uint8) {
 	dx := x2 - x1
 	dy := y2 - y1
 
+	absDy := dy
+	if dy < 0 {
+		absDy = -dy
+	}
+
 	dither := create5050Dither()
 
 	switch {
@@ -594,15 +599,11 @@ func line(dst *image.Paletted, x1, y1, x2, y2 int, col1, col2 uint8) {
 		if i0 > i1 {
 			i0, i1 = i1, i0
 		}
-		for i := i0; i < i1; i++ {
+		for i := i0; i <= i1; i++ {
 			dst.Pix[i*dst.Stride+x1] = dither(col1, col2)
 		}
 	case dy == 0:
-		i0, i1 := x1, x2
-		if i0 > i1 {
-			i0, i1 = i1, i0
-		}
-		for i := i0; i < i1; i++ {
+		for i := x1; i <= x2; i++ {
 			dst.Pix[y1*dst.Stride+i] = dither(col1, col2)
 		}
 	case dx == dy:
@@ -613,13 +614,13 @@ func line(dst *image.Paletted, x1, y1, x2, y2 int, col1, col2 uint8) {
 		// last pixel
 		dst.Pix[y2*dst.Stride+x2] = dither(col1, col2)
 	default:
-		// bresenham
-		if dx > dy {
-			dErr := math.Abs(float64(dy) / float64(dx))
-			err := float64(0)
-			xDir := ((dx >> 63) << 1) + 1
-			yDir := ((dy >> 63) << 1) + 1
+		err := float64(0)
+		xDir := ((dx >> 63) << 1) + 1
+		yDir := ((dy >> 63) << 1) + 1
 
+		// bresenham
+		if dx > absDy {
+			dErr := math.Abs(float64(dy) / float64(dx))
 			for x, y := x1, y1; x != x2; x += xDir {
 				dst.Pix[y*dst.Stride+x] = dither(col1, col2)
 				err += dErr
@@ -630,10 +631,6 @@ func line(dst *image.Paletted, x1, y1, x2, y2 int, col1, col2 uint8) {
 			}
 		} else {
 			dErr := math.Abs(float64(dx) / float64(dy))
-			err := float64(0)
-			xDir := ((dx >> 63) << 1) + 1
-			yDir := ((dy >> 63) << 1) + 1
-
 			for x, y := x1, y1; y != y2; y += yDir {
 				dst.Pix[y*dst.Stride+x] = dither(col1, col2)
 				err += dErr
