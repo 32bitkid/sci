@@ -340,7 +340,7 @@ opLoop:
 			if err != nil {
 				return nil, err
 			}
-			state.patternCode = code
+			state.patternCode = code & 0x3f
 		case pOpShortPatterns:
 			if state.patternCode&0x20 != 0 {
 				texture, err := r.bits.Read8(8)
@@ -497,7 +497,7 @@ func (s *picState) line(x1, y1, x2, y2 int) {
 	dx := x2 - x1
 	dy := y2 - y1
 
-	var dither = create5050Dither()
+	dither := create5050Dither()
 
 	switch {
 	case dx == 0 && dy == 0:
@@ -541,6 +541,36 @@ func (s *picState) line(x1, y1, x2, y2 int) {
 	}
 }
 
-func (s *picState) drawPattern(x1, y1 int) {
-	fmt.Printf("drawing a pattern at (%d,%d)\n", x1, y1)
+func (s *picState) drawPattern(cx, cy int) {
+	if !s.drawMode.Has(picDrawVisual) {
+		//TODO
+		return
+	}
+
+	dst := s.buffer
+	size := int(s.patternCode & 0x7)
+	isRect := int(s.patternCode&0x10) != 0
+	solid := s.patternCode&0x20 == 0
+	dither := create5050Dither()
+	if !solid {
+		dither = createNoiseDither()
+	}
+
+	if isRect {
+		for y := -size; y <= size; y++ {
+			for x := -size; x <= size; x++ {
+				col := dither(s.col1, s.col2)
+				dst.Set(cx+x, cy+y, dst.Palette[col])
+			}
+		}
+	} else {
+		r2 := size * size
+		for y := -size; y <= size; y++ {
+			sx := (int)(math.Sqrt(float64(r2-y*y) + 0.5))
+			for x := -sx; x <= sx; x++ {
+				col := dither(s.col1, s.col2)
+				dst.Set(cx+x, cy+y, dst.Palette[col])
+			}
+		}
+	}
 }
