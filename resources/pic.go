@@ -545,18 +545,32 @@ func drawPattern(dst *image.Paletted, cx, cy int, size int, col1, col2 uint8, is
 
 	if isRect {
 		for y := -size; y <= size; y++ {
+			if cy+y < 0 || cy+y >= 200 {
+				continue
+			}
+
+			offset := (cy + y) * dst.Stride
 			for x := -size; x <= size; x++ {
-				col := dither(col1, col2)
-				dst.Set(cx+x, cy+y, dst.Palette[col])
+				if cx+x < 0 || cx+x >= 320 {
+					continue
+				}
+				dst.Pix[offset+cx+x] = dither(col1, col2)
 			}
 		}
 	} else {
 		r2 := size * size
 		for y := -size; y <= size; y++ {
+			if cy+y < 0 || cy+y >= 200 {
+				continue
+			}
+
+			offset := (cy + y) * dst.Stride
 			sx := sqrt[r2-y*y]
 			for x := -sx; x <= sx; x++ {
-				col := dither(col1, col2)
-				dst.Set(cx+x, cy+y, dst.Palette[col])
+				if cx+x < 0 || cx+x >= 320 {
+					continue
+				}
+				dst.Pix[offset+cx+x] = dither(col1, col2)
 			}
 		}
 	}
