@@ -577,6 +577,10 @@ func drawPattern(dst *image.Paletted, cx, cy int, size int, col1, col2 uint8, is
 }
 
 func line(dst *image.Paletted, x1, y1, x2, y2 int, col1, col2 uint8) {
+	if x1 > x2 {
+		x1, y1, x2, y2 = x2, y2, x1, y1
+	}
+
 	dx := x2 - x1
 	dy := y2 - y1
 
