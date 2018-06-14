@@ -209,10 +209,10 @@ func ReadPic(resource *Resource) (image.Image, error) {
 	}
 
 	var state = picState{
-		visual:   image.NewPaletted(image.Rect(0, 0, 320, 200), egaPalette),
-		priority: image.NewPaletted(image.Rect(0, 0, 320, 200), gray16Palette),
-		control:  image.NewPaletted(image.Rect(0, 0, 320, 200), egaPalette),
-		aux:      image.NewPaletted(image.Rect(0, 0, 320, 200), egaPalette),
+		visual:   image.NewPaletted(image.Rect(0, 0, 320, 190), egaPalette),
+		priority: image.NewPaletted(image.Rect(0, 0, 320, 190), gray16Palette),
+		control:  image.NewPaletted(image.Rect(0, 0, 320, 190), egaPalette),
+		aux:      image.NewPaletted(image.Rect(0, 0, 320, 190), egaPalette),
 		drawMode: picDrawVisual | picDrawPriority,
 		palettes: [...]picPalette{
 			defaultPalette,
@@ -222,7 +222,7 @@ func ReadPic(resource *Resource) (image.Image, error) {
 		},
 	}
 
-	for i := 0; i < (320 * 200); i++ {
+	for i := 0; i < (320 * 190); i++ {
 		state.visual.Pix[i] = 0xf
 	}
 
@@ -545,7 +545,7 @@ func drawPattern(dst *image.Paletted, cx, cy int, size int, col1, col2 uint8, is
 
 	if isRect {
 		for y := -size; y <= size; y++ {
-			if cy+y < 0 || cy+y >= 200 {
+			if cy+y < 0 || cy+y >= 190 {
 				continue
 			}
 
@@ -560,7 +560,7 @@ func drawPattern(dst *image.Paletted, cx, cy int, size int, col1, col2 uint8, is
 	} else {
 		r2 := size * size
 		for y := -size; y <= size; y++ {
-			if cy+y < 0 || cy+y >= 200 {
+			if cy+y < 0 || cy+y >= 190 {
 				continue
 			}
 
