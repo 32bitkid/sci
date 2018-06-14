@@ -522,51 +522,39 @@ func (s *picState) fill(cx, cy int) {
 	type P struct{ x, y int }
 
 	var (
-		p       P
-		stack   = []P{{cx, cy}}
-		visited = map[P]struct{}{}
-		stride  = dst.Stride
+		p      P
+		stack  = []P{{cx, cy}}
+		stride = dst.Stride
 	)
 
 	for len(stack) > 0 {
 		p, stack = stack[0], stack[1:]
-		x, y := p.x, p.y
+		var (
+			x, y = p.x, p.y
+			i    = y*stride + x
+		)
 
-		if _, ok := visited[p]; ok {
+		if dst.Pix[i] != legalColor {
 			continue
 		}
 
-		visited[p] = struct{}{}
-
-		if i := p.y*stride + p.x; dst.Pix[i] == legalColor {
-			c := col1
-			if (p.x & 1) ^ (p.y & 1) == 1 {
-				c = col2
-			}
-			dst.Pix[i] = c
-		} else {
-			continue
+		c := col1
+		if (p.x&1)^(p.y&1) == 1 {
+			c = col2
 		}
+		dst.Pix[i] = c
 
 		if right := (P{x + 1, y}); right.x < 320 {
-			if _, ok := visited[right]; !ok {
-				stack = append(stack, right)
-			}
+			stack = append(stack, right)
 		}
 		if left := (P{x - 1, y}); left.x >= 0 {
-			if _, ok := visited[left]; !ok {
-				stack = append(stack, left)
-			}
+			stack = append(stack, left)
 		}
 		if down := (P{x, y + 1}); down.y < 190 {
-			if _, ok := visited[down]; !ok {
-				stack = append(stack, down)
-			}
+			stack = append(stack, down)
 		}
 		if up := (P{x, y - 1}); up.y >= 0 {
-			if _, ok := visited[up]; !ok {
-				stack = append(stack, up)
-			}
+			stack = append(stack, up)
 		}
 	}
 }
