@@ -539,22 +539,57 @@ func (s *picState) fill(cx, cy int) {
 		}
 
 		c := col1
-		if (p.x&1)^(p.y&1) == 1 {
+		if (x&1)^(y&1) == 1 {
 			c = col2
 		}
 		dst.Pix[i] = c
 
-		if right := (P{x + 1, y}); right.x < 320 {
-			stack = append(stack, right)
-		}
-		if left := (P{x - 1, y}); left.x >= 0 {
-			stack = append(stack, left)
-		}
 		if down := (P{x, y + 1}); down.y < 190 {
 			stack = append(stack, down)
 		}
 		if up := (P{x, y - 1}); up.y >= 0 {
 			stack = append(stack, up)
+		}
+
+		// flood right
+		for dx := x + 1; dx < 320; dx++ {
+			var i = y*stride + dx
+			if dst.Pix[i] != legalColor {
+				break
+			}
+
+			c := col1
+			if (dx&1)^(y&1) == 1 {
+				c = col2
+			}
+			dst.Pix[i] = c
+			if down := (P{dx, y + 1}); down.y < 190 {
+				stack = append(stack, down)
+			}
+			if up := (P{dx, y - 1}); up.y >= 0 {
+				stack = append(stack, up)
+			}
+		}
+
+		// flood left
+		for dx := x - 1; dx >= 0; dx-- {
+			var i = y*stride + dx
+			if dst.Pix[i] != legalColor {
+				break
+			}
+
+			c := col1
+			if (dx&1)^(y&1) == 1 {
+				c = col2
+			}
+			dst.Pix[i] = c
+			if down := (P{dx, y + 1}); down.y < 190 {
+				stack = append(stack, down)
+			}
+			if up := (P{dx, y - 1}); up.y >= 0 {
+				stack = append(stack, up)
+			}
+
 		}
 	}
 }
