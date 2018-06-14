@@ -9,31 +9,15 @@ import (
 	"image"
 	"math"
 	"math/rand"
-	"time"
 )
 
-type ditherFn func(a, b uint8) uint8
+type ditherFn func(x, y int, a, b uint8) uint8
 
-func create5050Dither() ditherFn {
-	state := false
-	return func(a, b uint8) (val uint8) {
-		val = a
-		if state {
-			val = b
-		}
-		state = !state
-		return
+var dither5050 ditherFn = func(x, y int, a, b uint8) uint8 {
+	if (x&1)^(y&1) == 1 {
+		return b
 	}
-}
-
-func createNoiseDither() ditherFn {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	return func(a, b uint8) uint8 {
-		if r.Float64() < 0.5 {
-			return b
-		}
-		return a
-	}
+	return a
 }
 
 type picReader struct {
@@ -635,11 +619,7 @@ var sqrt = [50]int{
 }
 
 func drawPattern(dst *image.Paletted, cx, cy int, size int, col1, col2 uint8, isRect, isSolid bool) {
-	dither := create5050Dither()
-	if !isSolid {
-		dither = createNoiseDither()
-	}
-
+	dither := dither5050
 	if isRect {
 		for y := -size; y <= size; y++ {
 			if cy+y < 0 || cy+y >= 190 {
@@ -651,7 +631,9 @@ func drawPattern(dst *image.Paletted, cx, cy int, size int, col1, col2 uint8, is
 				if cx+x < 0 || cx+x >= 320 {
 					continue
 				}
-				dst.Pix[offset+cx+x] = dither(col1, col2)
+				if isSolid || rand.Float64() < 0.5 {
+					dst.Pix[offset+cx+x] = dither(cx+x, y, col1, col2)
+				}
 			}
 		}
 	} else {
@@ -667,7 +649,9 @@ func drawPattern(dst *image.Paletted, cx, cy int, size int, col1, col2 uint8, is
 				if cx+x < 0 || cx+x >= 320 {
 					continue
 				}
-				dst.Pix[offset+cx+x] = dither(col1, col2)
+				if isSolid || rand.Float64() < 0.5 {
+					dst.Pix[offset+cx+x] = dither(cx+x, y, col1, col2)
+				}
 			}
 		}
 	}
@@ -686,7 +670,7 @@ func line(dst *image.Paletted, x1, y1, x2, y2 int, col1, col2 uint8) {
 		absDy = -dy
 	}
 
-	dither := create5050Dither()
+	dither := dither5050
 
 	switch {
 	case dx == 0 && dy == 0:
@@ -697,19 +681,20 @@ func line(dst *image.Paletted, x1, y1, x2, y2 int, col1, col2 uint8) {
 			i0, i1 = i1, i0
 		}
 		for i := i0; i <= i1; i++ {
-			dst.Pix[i*dst.Stride+x1] = dither(col1, col2)
+			dst.Pix[i*dst.Stride+x1] = dither(x1, i, col1, col2)
 		}
 	case dy == 0:
 		for i := x1; i <= x2; i++ {
-			dst.Pix[y1*dst.Stride+i] = dither(col1, col2)
+			dst.Pix[y1*dst.Stride+i] = dither(i, y1, col1, col2)
 		}
 	case dx == dy:
 		dir := ((dx >> 63) << 1) + 1
 		for i := 0; i != dx; i += dir {
-			dst.Pix[(y1+i)*dst.Stride+(x1+i)] = dither(col1, col2)
+			x, y := x1+i, y1+i
+			dst.Pix[y*dst.Stride+x] = dither(x, y, col1, col2)
 		}
 		// last pixel
-		dst.Pix[y2*dst.Stride+x2] = dither(col1, col2)
+		dst.Pix[y2*dst.Stride+x2] = dither(x2, y2, col1, col2)
 	default:
 		err := float64(0)
 		xDir := ((dx >> 63) << 1) + 1
@@ -719,7 +704,7 @@ func line(dst *image.Paletted, x1, y1, x2, y2 int, col1, col2 uint8) {
 		if dx > absDy {
 			dErr := math.Abs(float64(dy) / float64(dx))
 			for x, y := x1, y1; x != x2; x += xDir {
-				dst.Pix[y*dst.Stride+x] = dither(col1, col2)
+				dst.Pix[y*dst.Stride+x] = dither(x, y, col1, col2)
 				err += dErr
 				if err >= 0.5 {
 					y += yDir
@@ -729,7 +714,7 @@ func line(dst *image.Paletted, x1, y1, x2, y2 int, col1, col2 uint8) {
 		} else {
 			dErr := math.Abs(float64(dx) / float64(dy))
 			for x, y := x1, y1; y != y2; y += yDir {
-				dst.Pix[y*dst.Stride+x] = dither(col1, col2)
+				dst.Pix[y*dst.Stride+x] = dither(x, y, col1, col2)
 				err += dErr
 				if err >= 0.5 {
 					x += xDir
@@ -738,6 +723,6 @@ func line(dst *image.Paletted, x1, y1, x2, y2 int, col1, col2 uint8) {
 			}
 		}
 		// last pixel
-		dst.Pix[y2*dst.Stride+x2] = dither(col1, col2)
+		dst.Pix[y2*dst.Stride+x2] = dither(x2, y2, col1, col2)
 	}
 }
