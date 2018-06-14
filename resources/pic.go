@@ -493,8 +493,82 @@ opLoop:
 	return state.visual, nil
 }
 
-func (s *picState) fill(x, y int) {
-	fmt.Printf("filling at (%d, %d)\n", x, y)
+func (s *picState) fill(cx, cy int) {
+	var (
+		dst        *image.Paletted
+		legalColor uint8
+		col1       uint8
+		col2       uint8
+	)
+
+	switch {
+	case s.drawMode.Has(picDrawVisual):
+		dst = s.visual
+		legalColor = 0xf
+		col1 = s.col1
+		col2 = s.col2
+	case s.drawMode.Has(picDrawPriority):
+		dst = s.priority
+		legalColor = 0x0
+		col1, col2 = s.priorityCode, s.priorityCode
+	case s.drawMode.Has(picDrawControl):
+		dst = s.control
+		legalColor = 0x0
+		col1, col2 = s.controlCode, s.controlCode
+	default:
+		return
+	}
+
+	type P struct{ x, y int }
+
+	var (
+		p       P
+		stack   = []P{{cx, cy}}
+		visited = map[P]struct{}{}
+		stride  = dst.Stride
+	)
+
+	for len(stack) > 0 {
+		p, stack = stack[0], stack[1:]
+		x, y := p.x, p.y
+
+		if _, ok := visited[p]; ok {
+			continue
+		}
+
+		visited[p] = struct{}{}
+
+		if i := p.y*stride + p.x; dst.Pix[i] == legalColor {
+			c := col1
+			if (p.x & 1) ^ (p.y & 1) == 1 {
+				c = col2
+			}
+			dst.Pix[i] = c
+		} else {
+			continue
+		}
+
+		if right := (P{x + 1, y}); right.x < 320 {
+			if _, ok := visited[right]; !ok {
+				stack = append(stack, right)
+			}
+		}
+		if left := (P{x - 1, y}); left.x >= 0 {
+			if _, ok := visited[left]; !ok {
+				stack = append(stack, left)
+			}
+		}
+		if down := (P{x, y + 1}); down.y < 190 {
+			if _, ok := visited[down]; !ok {
+				stack = append(stack, down)
+			}
+		}
+		if up := (P{x, y - 1}); up.y >= 0 {
+			if _, ok := visited[up]; !ok {
+				stack = append(stack, up)
+			}
+		}
+	}
 }
 
 func (s *picState) line(x1, y1, x2, y2 int) {
