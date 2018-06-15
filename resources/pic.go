@@ -198,6 +198,47 @@ type picState struct {
 	aux      *image.Paletted
 }
 
+func (s *picState) fill(cx, cy int) {
+	switch {
+	case s.drawMode.Has(picDrawVisual):
+		fill(s.visual, cx, cy, 0xf, s.col1, s.col2)
+	case s.drawMode.Has(picDrawPriority):
+		fill(s.priority, cx, cy, 0x0, s.priorityCode, s.priorityCode)
+	case s.drawMode.Has(picDrawControl):
+		fill(s.control, cx, cy, 0x0, s.controlCode, s.controlCode)
+	default:
+		return
+	}
+}
+
+func (s *picState) line(x1, y1, x2, y2 int) {
+	if s.drawMode.Has(picDrawVisual) {
+		line(s.visual, x1, y1, x2, y2, s.col1, s.col2)
+	}
+	if s.drawMode.Has(picDrawPriority) {
+		line(s.priority, x1, y1, x2, y2, s.priorityCode, s.priorityCode)
+	}
+	if s.drawMode.Has(picDrawControl) {
+		line(s.control, x1, y1, x2, y2, s.controlCode, s.controlCode)
+	}
+}
+
+func (s *picState) drawPattern(cx, cy int) {
+	size := int(s.patternCode & 0x7)
+	isRect := s.patternCode&0x10 != 0
+	solid := s.patternCode&0x20 == 0
+
+	if s.drawMode.Has(picDrawVisual) {
+		drawPattern(s.visual, cx, cy, size, s.col1, s.col2, isRect, solid)
+	}
+	if s.drawMode.Has(picDrawPriority) {
+		drawPattern(s.priority, cx, cy, size, s.priorityCode, s.priorityCode, isRect, solid)
+	}
+	if s.drawMode.Has(picDrawControl) {
+		drawPattern(s.control, cx, cy, size, s.controlCode, s.controlCode, isRect, solid)
+	}
+}
+
 func ReadPic(resource *Resource) (image.Image, error) {
 	r := picReader{
 		bitreader.NewReader(bufio.NewReader(bytes.NewReader(resource.bytes))),
@@ -504,32 +545,7 @@ opLoop:
 	return state.visual, nil
 }
 
-func (s *picState) fill(cx, cy int) {
-	var (
-		dst        *image.Paletted
-		legalColor uint8
-		col1       uint8
-		col2       uint8
-	)
-
-	switch {
-	case s.drawMode.Has(picDrawVisual):
-		dst = s.visual
-		legalColor = 0xf
-		col1 = s.col1
-		col2 = s.col2
-	case s.drawMode.Has(picDrawPriority):
-		dst = s.priority
-		legalColor = 0x0
-		col1, col2 = s.priorityCode, s.priorityCode
-	case s.drawMode.Has(picDrawControl):
-		dst = s.control
-		legalColor = 0x0
-		col1, col2 = s.controlCode, s.controlCode
-	default:
-		return
-	}
-
+func fill(dst *image.Paletted, cx, cy int, legalColor, col1, col2 uint8) {
 	type P struct{ x, y int }
 
 	var (
@@ -612,35 +628,6 @@ func (s *picState) fill(cx, cy int) {
 
 		}
 	}
-}
-
-func (s *picState) line(x1, y1, x2, y2 int) {
-	if s.drawMode.Has(picDrawVisual) {
-		line(s.visual, x1, y1, x2, y2, s.col1, s.col2)
-	}
-	if s.drawMode.Has(picDrawPriority) {
-		line(s.priority, x1, y1, x2, y2, s.priorityCode, s.priorityCode)
-	}
-	if s.drawMode.Has(picDrawControl) {
-		line(s.control, x1, y1, x2, y2, s.controlCode, s.controlCode)
-	}
-}
-
-func (s *picState) drawPattern(cx, cy int) {
-	size := int(s.patternCode & 0x7)
-	isRect := s.patternCode&0x10 != 0
-	solid := s.patternCode&0x20 == 0
-
-	if s.drawMode.Has(picDrawVisual) {
-		drawPattern(s.visual, cx, cy, size, s.col1, s.col2, isRect, solid)
-	}
-	if s.drawMode.Has(picDrawPriority) {
-		drawPattern(s.priority, cx, cy, size, s.priorityCode, s.priorityCode, isRect, solid)
-	}
-	if s.drawMode.Has(picDrawControl) {
-		drawPattern(s.control, cx, cy, size, s.controlCode, s.controlCode, isRect, solid)
-	}
-
 }
 
 // (0..(7*7)) => i => int(math.Round(math.Sqrt(float64(i))))
