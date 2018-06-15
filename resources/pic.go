@@ -14,7 +14,7 @@ import (
 type ditherFn func(x, y int, a, b uint8) uint8
 
 var dither5050 ditherFn = func(x, y int, a, b uint8) uint8 {
-	if (x&1)^(y&1) == 1 {
+	if (x&1)^(y&1) == 0 {
 		return b
 	}
 	return a
