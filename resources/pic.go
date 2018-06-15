@@ -196,12 +196,21 @@ type picState struct {
 	priority *image.Paletted
 	control  *image.Paletted
 	aux      *image.Paletted
+
+	after []func(*image.Paletted)
+}
+
+func (s *picState) invokeAfter() {
+	for _, fn := range s.after {
+		fn(s.visual)
+	}
 }
 
 func (s *picState) fill(cx, cy int) {
 	switch {
 	case s.drawMode.Has(picDrawVisual):
 		fill(s.visual, cx, cy, 0xf, s.col1, s.col2)
+		s.invokeAfter()
 	case s.drawMode.Has(picDrawPriority):
 		fill(s.priority, cx, cy, 0x0, s.priorityCode, s.priorityCode)
 	case s.drawMode.Has(picDrawControl):
@@ -214,6 +223,7 @@ func (s *picState) fill(cx, cy int) {
 func (s *picState) line(x1, y1, x2, y2 int) {
 	if s.drawMode.Has(picDrawVisual) {
 		line(s.visual, x1, y1, x2, y2, s.col1, s.col2)
+		s.invokeAfter()
 	}
 	if s.drawMode.Has(picDrawPriority) {
 		line(s.priority, x1, y1, x2, y2, s.priorityCode, s.priorityCode)
@@ -230,6 +240,7 @@ func (s *picState) drawPattern(cx, cy int) {
 
 	if s.drawMode.Has(picDrawVisual) {
 		drawPattern(s.visual, cx, cy, size, s.col1, s.col2, isRect, solid)
+		s.invokeAfter()
 	}
 	if s.drawMode.Has(picDrawPriority) {
 		drawPattern(s.priority, cx, cy, size, s.priorityCode, s.priorityCode, isRect, solid)
@@ -239,7 +250,7 @@ func (s *picState) drawPattern(cx, cy int) {
 	}
 }
 
-func ReadPic(resource *Resource) (image.Image, error) {
+func ReadPic(resource *Resource, afterDraw ...func(*image.Paletted)) (image.Image, error) {
 	r := picReader{
 		bitreader.NewReader(bufio.NewReader(bytes.NewReader(resource.bytes))),
 	}
@@ -256,6 +267,7 @@ func ReadPic(resource *Resource) (image.Image, error) {
 			defaultPalette,
 			defaultPalette,
 		},
+		after: afterDraw,
 	}
 
 	for i := 0; i < (320 * 190); i++ {
