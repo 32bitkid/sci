@@ -586,11 +586,7 @@ func fill(dst *image.Paletted, cx, cy int, legalColor, col1, col2 uint8) {
 			continue
 		}
 
-		c := col1
-		if (x&1)^(y&1) == 1 {
-			c = col2
-		}
-		dst.Pix[i] = c
+		dst.Pix[i] = dither5050(x, y, col1, col2)
 
 		if down := (P{x, y + 1}); down.y < 190 {
 			stack = append(stack, down)
@@ -606,11 +602,7 @@ func fill(dst *image.Paletted, cx, cy int, legalColor, col1, col2 uint8) {
 				break
 			}
 
-			c := col1
-			if (dx&1)^(y&1) == 1 {
-				c = col2
-			}
-			dst.Pix[i] = c
+			dst.Pix[i] = dither5050(dx, y, col1, col2)
 			if down := (P{dx, y + 1}); down.y < 190 {
 				stack = append(stack, down)
 			}
@@ -626,11 +618,7 @@ func fill(dst *image.Paletted, cx, cy int, legalColor, col1, col2 uint8) {
 				break
 			}
 
-			c := col1
-			if (dx&1)^(y&1) == 1 {
-				c = col2
-			}
-			dst.Pix[i] = c
+			dst.Pix[i] = dither5050(dx, y, col1, col2)
 			if down := (P{dx, y + 1}); down.y < 190 {
 				stack = append(stack, down)
 			}
