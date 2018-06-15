@@ -181,11 +181,10 @@ const (
 )
 
 type picState struct {
-	col1     uint8
-	col2     uint8
 	palettes [4]picPalette
 	drawMode picDrawMode
 
+	color     uint8
 	priorityCode uint8
 	controlCode  uint8
 
@@ -209,7 +208,8 @@ func (s *picState) debugger() {
 func (s *picState) fill(cx, cy int) {
 	switch {
 	case s.drawMode.Has(picDrawVisual):
-		fill(s.visual, cx, cy, 0xf, s.col1, s.col2)
+		col1, col2 := (s.color >> 4) & 0x0F, (s.color >> 0) & 0x0F
+		fill(s.visual, cx, cy, 0xf, col1, col2)
 		s.debugger()
 	case s.drawMode.Has(picDrawPriority):
 		fill(s.priority, cx, cy, 0x0, s.priorityCode, s.priorityCode)
@@ -222,7 +222,8 @@ func (s *picState) fill(cx, cy int) {
 
 func (s *picState) line(x1, y1, x2, y2 int) {
 	if s.drawMode.Has(picDrawVisual) {
-		line(s.visual, x1, y1, x2, y2, s.col1, s.col2)
+		col1, col2 := (s.color >> 4) & 0x0F, (s.color >> 0) & 0x0F
+		line(s.visual, x1, y1, x2, y2, col1, col2)
 		s.debugger()
 	}
 	if s.drawMode.Has(picDrawPriority) {
@@ -239,7 +240,8 @@ func (s *picState) drawPattern(cx, cy int) {
 	solid := s.patternCode&0x20 == 0
 
 	if s.drawMode.Has(picDrawVisual) {
-		drawPattern(s.visual, cx, cy, size, s.col1, s.col2, isRect, solid)
+		col1, col2 := (s.color >> 4) & 0x0F, (s.color >> 0) & 0x0F
+		drawPattern(s.visual, cx, cy, size, col1, col2, isRect, solid)
 		s.debugger()
 	}
 	if s.drawMode.Has(picDrawPriority) {
@@ -291,8 +293,7 @@ opLoop:
 			pal := code / 40
 			index := code % 40
 			color := state.palettes[pal][index]
-			state.col1 = (color >> 4) & 0x0F
-			state.col2 = (color >> 0) & 0x0F
+			state.color = color
 			state.drawMode.Set(picDrawVisual, true)
 		case pOpDisableVisual:
 			state.drawMode.Set(picDrawVisual, false)
