@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/32bitkid/bitreader"
 	"image"
-	"math"
 	"math/rand"
 )
 
@@ -681,72 +680,44 @@ func drawPattern(dst *image.Paletted, cx, cy int, size int, col1, col2 uint8, is
 	}
 }
 
+func abs(v int) int {
+	if v < 0 {
+		return -v
+	}
+	return v
+}
+
 func line(dst *image.Paletted, x1, y1, x2, y2 int, col1, col2 uint8) {
+	// bresenham
+	steep := false
+	if abs(x1-x2) < abs(y1-y2) {
+		x1, y1 = y1, x1
+		x2, y2 = y2, x2
+		steep = true
+	}
+
 	if x1 > x2 {
-		x1, y1, x2, y2 = x2, y2, x1, y1
+		x1, x2 = x2, x1
+		y1, y2 = y2, y1
 	}
 
-	dx := x2 - x1
-	dy := y2 - y1
+	dx, dy := x2-x1, y2-y1
+	yDir := ((dy >> 63) << 1) + 1
+	dErr := abs(dy) << 1
+	err := 0
+	y := y1
 
-	absDy := dy
-	if dy < 0 {
-		absDy = -dy
-	}
-
-	dither := dither5050
-
-	switch {
-	case dx == 0 && dy == 0:
-		dst.Pix[y1*dst.Stride+x1] = col1
-	case dx == 0:
-		i0, i1 := y1, y2
-		if i0 > i1 {
-			i0, i1 = i1, i0
-		}
-		for i := i0; i <= i1; i++ {
-			dst.Pix[i*dst.Stride+x1] = dither(x1, i, col1, col2)
-		}
-	case dy == 0:
-		for i := x1; i <= x2; i++ {
-			dst.Pix[y1*dst.Stride+i] = dither(i, y1, col1, col2)
-		}
-	case dx == dy:
-		dir := ((dx >> 63) << 1) + 1
-		for i := 0; i != dx; i += dir {
-			x, y := x1+i, y1+i
-			dst.Pix[y*dst.Stride+x] = dither(x, y, col1, col2)
-		}
-		// last pixel
-		dst.Pix[y2*dst.Stride+x2] = dither(x2, y2, col1, col2)
-	default:
-		err := float64(0)
-		xDir := ((dx >> 63) << 1) + 1
-		yDir := ((dy >> 63) << 1) + 1
-
-		// bresenham
-		if dx > absDy {
-			dErr := math.Abs(float64(dy) / float64(dx))
-			for x, y := x1, y1; x != x2; x += xDir {
-				dst.Pix[y*dst.Stride+x] = dither(x, y, col1, col2)
-				err += dErr
-				if err >= 0.5 {
-					y += yDir
-					err -= 1
-				}
-			}
+	for x := x1; x <= x2; x++ {
+		if steep {
+			dst.Pix[x*dst.Stride+y] = dither5050(y, x, col1, col2)
 		} else {
-			dErr := math.Abs(float64(dx) / float64(dy))
-			for x, y := x1, y1; y != y2; y += yDir {
-				dst.Pix[y*dst.Stride+x] = dither(x, y, col1, col2)
-				err += dErr
-				if err >= 0.5 {
-					x += xDir
-					err -= 1
-				}
-			}
+			dst.Pix[y*dst.Stride+x] = dither5050(x, y, col1, col2)
 		}
-		// last pixel
-		dst.Pix[y2*dst.Stride+x2] = dither(x2, y2, col1, col2)
+
+		err += dErr
+		if err > dx {
+			y += yDir
+			err -= dx * 2
+		}
 	}
 }
