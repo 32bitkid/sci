@@ -366,7 +366,7 @@ opLoop:
 					state.patternTexture = texture >> 1
 				}
 
-				x, y, err := r.getRelCoords1(x, y)
+				x, y, err = r.getRelCoords1(x, y)
 				if err != nil {
 					return nil, err
 				}
@@ -402,7 +402,7 @@ opLoop:
 					state.patternTexture = texture >> 1
 				}
 
-				x, y, err := r.getRelCoords2(x, y)
+				x, y, err = r.getRelCoords2(x, y)
 				if err != nil {
 					return nil, err
 				}
