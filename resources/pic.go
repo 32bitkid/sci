@@ -506,13 +506,22 @@ func (s *picState) fill(cx, cy int) {
 	type P struct{ x, y int }
 
 	var (
-		p      P
-		stack  = []P{{cx, cy}}
-		stride = dst.Stride
+		p       P
+		stack   = []P{{cx, cy}}
+		stride  = dst.Stride
+		visited = map[P]struct{}{}
+		VISITED = struct{}{}
 	)
 
 	for len(stack) > 0 {
 		p, stack = stack[0], stack[1:]
+
+		if _, v := visited[p]; v {
+			continue
+		}
+
+		visited[p] = VISITED
+
 		var (
 			x, y = p.x, p.y
 			i    = y*stride + x
