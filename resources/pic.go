@@ -464,6 +464,22 @@ opLoop:
 					return nil, err
 				}
 				state.palettes[pal.I] = pal.P
+			case pOpxCode(0x02):
+				var pal struct {
+					I uint8
+					P picPalette
+				}
+				err := binary.Read(r.bits, binary.LittleEndian, &pal)
+				if err != nil {
+					return nil, err
+				}
+				// TODO this looks like a palette, but not sure
+				// what its supposed to be used for...
+				//state.palettes[pal.I] = pal.P
+			case pOpxCode(0x03), pOpxCode(0x05):
+				// not sure what this byte is for...
+				r.bits.Skip(8)
+			case pOpxCode(0x04), pOpxCode(0x06):
 			default:
 				return nil, fmt.Errorf("unhandled opx 0x%02x", opx)
 			}
