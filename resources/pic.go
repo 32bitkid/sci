@@ -133,10 +133,12 @@ const (
 	pOpDone                     = 0xff
 )
 
+// Extended Picture Op-Codes
 type pOpxCode uint8
 
 const (
-	pOpxSetPalette pOpxCode = 0x01
+	pOpxUpdatePaletteEntries pOpxCode = 0x00
+	pOpxSetPalette                    = 0x01
 )
 
 type picPalette [40]uint8
@@ -437,7 +439,7 @@ opLoop:
 				return nil, err
 			}
 			switch pOpxCode(opx) {
-			case pOpxCode(0x00):
+			case pOpxUpdatePaletteEntries:
 				for {
 					if peek, err := r.bits.Peek8(8); err != nil {
 						return nil, err
