@@ -78,6 +78,13 @@ func (p picReader) getRelCoords2(x1, y1 int) (int, int, error) {
 	return x2, y2, nil
 }
 
+// getRelCoords1 reads a medium length delta from the bit-stream.
+// The total payload is 8-bits long:
+//
+// bits |
+// 0-3  | y-delta
+// 4-7  | x-delta
+//
 func (p picReader) getRelCoords1(x, y int) (int, int, error) {
 	xSign, err := p.bits.Read1()
 	if err != nil {
@@ -112,6 +119,7 @@ func (p picReader) getRelCoords1(x, y int) (int, int, error) {
 	return x, y, nil
 }
 
+// Picture Op-Codes
 type pOpCode uint8
 
 const (
@@ -141,6 +149,7 @@ const (
 	pOpxSetPalette                    = 0x01
 )
 
+// picPalette is an array of 40 uint8 values, which is actually a tuple of two 4-bit EGA colors.
 type picPalette [40]uint8
 
 var defaultPalette = picPalette{
