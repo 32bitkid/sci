@@ -509,13 +509,16 @@ opLoop:
 						break
 					}
 
-					code, err := r.bits.Read16(16)
+					index, err := r.bits.Read8(8)
 					if err != nil {
 						return nil, err
 					}
-					index := code >> 8
-					color := uint8(code & 0xff)
-					state.palettes[index/40][color%40] = color
+
+					color, err := r.bits.Read8(8)
+					if err != nil {
+						return nil, err
+					}
+					state.palettes[index/40][index%40] = color
 				}
 
 			case pOpxSetPalette:
