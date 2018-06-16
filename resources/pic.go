@@ -688,36 +688,69 @@ func abs(v int) int {
 }
 
 func line(dst *image.Paletted, x1, y1, x2, y2 int, col1, col2 uint8) {
-	// bresenham
-	steep := false
-	if abs(x1-x2) < abs(y1-y2) {
-		x1, y1 = y1, x1
-		x2, y2 = y2, x2
-		steep = true
-	}
-
-	if x1 > x2 {
-		x1, x2 = x2, x1
-		y1, y2 = y2, y1
-	}
-
-	dx, dy := x2-x1, y2-y1
-	yDir := ((dy >> 63) << 1) + 1
-	dErr := abs(dy) << 1
-	err := 0
-	y := y1
-
-	for x := x1; x <= x2; x++ {
-		if steep {
-			dst.Pix[x*dst.Stride+y] = dither5050(y, x, col1, col2)
-		} else {
-			dst.Pix[y*dst.Stride+x] = dither5050(x, y, col1, col2)
+	// helpers
+	var clip = func(v, min, max int) int {
+		switch {
+		case v < min:
+			return min
+		case v > max:
+			return max
 		}
+		return v
+	}
 
-		err += dErr
-		if err > dx {
-			y += yDir
-			err -= dx * 2
+	var swap = func(a, b *int, cond bool) {
+		if cond {
+			*a, *b = *b, *a
+		}
+	}
+
+	left, top := clip(x1, 0, 319), clip(y1, 0, 189)
+	right, bottom := clip(x2, 0, 319), clip(y2, 0, 189)
+
+	switch {
+	case left == right:
+		swap(&top, &bottom, top > bottom)
+		for y := top; y <= bottom; y++ {
+			dst.Pix[y*dst.Stride+left] = dither5050(left, y, col1, col2)
+		}
+	case top == bottom:
+		swap(&right, &left, right > left)
+		for x := right; x <= left; x++ {
+			dst.Pix[top*dst.Stride+x] = dither5050(x, top, col1, col2)
+		}
+	default:
+		// bresenham
+		dx, dy := right-left, bottom-top
+		stepX, stepY := ((dx>>15)<<1)+1, ((dy>>15)<<1)+1
+
+		dx, dy = abs(dx)<<1, abs(dy)<<1
+
+		dst.Pix[top*dst.Stride+left] = dither5050(left, top, col1, col2)
+		dst.Pix[bottom*dst.Stride+right] = dither5050(right, bottom, col1, col2)
+
+		if dx > dy {
+			fraction := dy - (dx >> 1)
+			for left != right {
+				if fraction >= 0 {
+					top += stepY
+					fraction -= dx
+				}
+				left += stepX
+				fraction += dy
+				dst.Pix[top*dst.Stride+left] = dither5050(left, top, col1, col2)
+			}
+		} else {
+			fraction := dx - (dy >> 1)
+			for top != bottom {
+				if fraction >= 0 {
+					left += stepX
+					fraction -= dy
+				}
+				top += stepY
+				fraction += dx
+				dst.Pix[top*dst.Stride+left] = dither5050(left, top, col1, col2)
+			}
 		}
 	}
 }
