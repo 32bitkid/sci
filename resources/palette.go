@@ -13,9 +13,9 @@ func (ega rgb24Color) RGBA() (r, g, b, a uint32) {
 	gb := uint32(ega.RGB >> 8 & 0xFF)
 	bb := uint32(ega.RGB & 0xFF)
 
-	r = rb<<8 | rb<<0
-	g = gb<<8 | gb<<0
-	b = bb<<8 | bb<<0
+	r = rb<<8 | rb
+	g = gb<<8 | gb
+	b = bb<<8 | bb
 	a = 0xFFFFFF
 	return
 }
@@ -30,14 +30,14 @@ var egaPalette = []color.Color{
 	rgb24Color{0xAA5500},
 	rgb24Color{0xAAAAAA},
 
-	rgb24Color{0X555555},
-	rgb24Color{0X5555FF},
-	rgb24Color{0X55FF55},
-	rgb24Color{0X55FFFF},
-	rgb24Color{0XFF5555},
-	rgb24Color{0XFF55FF},
-	rgb24Color{0XFFFF55},
-	rgb24Color{0XFFFFFF},
+	rgb24Color{0x555555},
+	rgb24Color{0x5555FF},
+	rgb24Color{0x55FF55},
+	rgb24Color{0x55FFFF},
+	rgb24Color{0xFF5555},
+	rgb24Color{0xFF55FF},
+	rgb24Color{0xFFFF55},
+	rgb24Color{0xFFFFFF},
 }
 
 var gray16Palette = []color.Color{
