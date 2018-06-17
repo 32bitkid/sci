@@ -593,10 +593,15 @@ func fill(cx, cy int, legalColor uint8, dst *image.Paletted, color uint8, dither
 		dst.Pix[i] = dither(x, y, color)
 
 		if down := (P{x, y + 1}); down.y < 190 {
-			stack = append(stack, down)
+			if _, v := visited[down]; !v {
+				stack = append(stack, down)
+			}
 		}
+		
 		if up := (P{x, y - 1}); up.y >= 0 {
-			stack = append(stack, up)
+			if _, v := visited[up]; !v {
+				stack = append(stack, up)
+			}
 		}
 
 		// flood right
@@ -610,10 +615,14 @@ func fill(cx, cy int, legalColor uint8, dst *image.Paletted, color uint8, dither
 
 			dst.Pix[i] = dither(dx, y, color)
 			if down := (P{dx, y + 1}); down.y < 190 {
-				stack = append(stack, down)
+				if _, v := visited[down]; !v {
+					stack = append(stack, down)
+				}
 			}
 			if up := (P{dx, y - 1}); up.y >= 0 {
-				stack = append(stack, up)
+				if _, v := visited[up]; !v {
+					stack = append(stack, up)
+				}
 			}
 		}
 
@@ -628,12 +637,15 @@ func fill(cx, cy int, legalColor uint8, dst *image.Paletted, color uint8, dither
 
 			dst.Pix[i] = dither(dx, y, color)
 			if down := (P{dx, y + 1}); down.y < 190 {
-				stack = append(stack, down)
+				if _, v := visited[down]; !v {
+					stack = append(stack, down)
+				}
 			}
 			if up := (P{dx, y - 1}); up.y >= 0 {
-				stack = append(stack, up)
+				if _, v := visited[up]; !v {
+					stack = append(stack, up)
+				}
 			}
-
 		}
 	}
 }
