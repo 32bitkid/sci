@@ -601,6 +601,8 @@ func fill(cx, cy int, legalColor uint8, dst *image.Paletted, color uint8, dither
 
 		// flood right
 		for dx := x + 1; dx < 320; dx++ {
+			visited[P{dx, y}] = VISITED
+
 			var i = y*stride + dx
 			if dst.Pix[i] != legalColor {
 				break
@@ -617,6 +619,8 @@ func fill(cx, cy int, legalColor uint8, dst *image.Paletted, color uint8, dither
 
 		// flood left
 		for dx := x - 1; dx >= 0; dx-- {
+			visited[P{dx, y}] = VISITED
+
 			var i = y*stride + dx
 			if dst.Pix[i] != legalColor {
 				break
