@@ -211,12 +211,12 @@ func (s *picState) debugger() {
 func (s *picState) fill(cx, cy int) {
 	switch {
 	case s.drawMode.Has(picDrawVisual):
-		fill(s.visual, cx, cy, 0xf, s.color, dither5050)
+		fill(cx, cy, 0xf, s.visual,s.color, dither5050)
 		s.debugger()
 	case s.drawMode.Has(picDrawPriority):
-		fill(s.priority, cx, cy, 0x0, s.priorityCode, noDither)
+		fill(cx, cy, 0x0, s.priority, s.priorityCode, noDither)
 	case s.drawMode.Has(picDrawControl):
-		fill(s.control, cx, cy, 0x0, s.controlCode, noDither)
+		fill(cx, cy, 0x0, s.control, s.controlCode, noDither)
 	default:
 		return
 	}
@@ -224,14 +224,14 @@ func (s *picState) fill(cx, cy int) {
 
 func (s *picState) line(x1, y1, x2, y2 int) {
 	if s.drawMode.Has(picDrawVisual) {
-		line(s.visual, x1, y1, x2, y2, s.color, dither5050)
+		line(x1, y1, x2, y2, s.visual, s.color, dither5050)
 		s.debugger()
 	}
 	if s.drawMode.Has(picDrawPriority) {
-		line(s.priority, x1, y1, x2, y2, s.priorityCode, noDither)
+		line(x1, y1, x2, y2, s.priority, s.priorityCode, noDither)
 	}
 	if s.drawMode.Has(picDrawControl) {
-		line(s.control, x1, y1, x2, y2, s.controlCode, noDither)
+		line(x1, y1, x2, y2, s.control, s.controlCode, noDither)
 	}
 }
 
@@ -241,14 +241,14 @@ func (s *picState) drawPattern(cx, cy int) {
 	solid := s.patternCode&0x20 == 0
 
 	if s.drawMode.Has(picDrawVisual) {
-		drawPattern(s.visual, cx, cy, size, isRect, solid, s.color, dither5050)
+		drawPattern(cx, cy, size, isRect, solid, s.visual, s.color, dither5050)
 		s.debugger()
 	}
 	if s.drawMode.Has(picDrawPriority) {
-		drawPattern(s.priority, cx, cy, size, isRect, solid, s.priorityCode, noDither)
+		drawPattern(cx, cy, size, isRect, solid, s.priority, s.priorityCode, noDither)
 	}
 	if s.drawMode.Has(picDrawControl) {
-		drawPattern(s.control, cx, cy, size, isRect, solid, s.controlCode, noDither)
+		drawPattern(cx, cy, size, isRect, solid, s.control, s.controlCode, noDither)
 	}
 }
 
@@ -561,7 +561,7 @@ opLoop:
 	return state.visual, nil
 }
 
-func fill(dst *image.Paletted, cx, cy int, legalColor, color uint8, dither ditherFn) {
+func fill(cx, cy int, legalColor uint8, dst *image.Paletted, color uint8, dither ditherFn) {
 	type P struct{ x, y int }
 
 	var (
@@ -645,7 +645,7 @@ var sqrt = [50]int{
 	6, 7, 7, 7, 7, 7, 7,
 }
 
-func drawPattern(dst *image.Paletted, cx, cy int, size int, isRect, isSolid bool, color uint8, dither ditherFn) {
+func drawPattern(cx, cy int, size int, isRect, isSolid bool, dst *image.Paletted, color uint8, dither ditherFn) {
 	if isRect {
 		for y := -size; y <= size; y++ {
 			if cy+y < 0 || cy+y >= 190 {
@@ -690,7 +690,7 @@ func abs(v int) int {
 	return v
 }
 
-func line(dst *image.Paletted, x1, y1, x2, y2 int, color uint8, dither ditherFn) {
+func line(x1, y1, x2, y2 int, dst *image.Paletted, color uint8, dither ditherFn) {
 	// helpers
 	var clip = func(v, min, max int) int {
 		switch {
