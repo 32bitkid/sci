@@ -211,7 +211,7 @@ func (s *picState) debugger() {
 func (s *picState) fill(cx, cy int) {
 	switch {
 	case s.drawMode.Has(picDrawVisual):
-		fill(cx, cy, 0xf, s.visual,s.color, dither5050)
+		fill(cx, cy, 0xf, s.visual, s.color, dither5050)
 		s.debugger()
 	case s.drawMode.Has(picDrawPriority):
 		fill(cx, cy, 0x0, s.priority, s.priorityCode, noDither)
