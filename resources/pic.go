@@ -561,66 +561,69 @@ opLoop:
 	return state.visual, nil
 }
 
+type point struct{ x, y int }
+
+func (p point) isLegal(dst *image.Paletted, legalColor uint8) bool {
+	idx := p.y*dst.Stride + p.x
+	return dst.Pix[idx] == legalColor
+}
+
 func fill(cx, cy int, legalColor uint8, dst *image.Paletted, color uint8, dither ditherFn) {
-	type P struct{ x, y int }
+	if color == 255 {
+		// TODO this doesn't seem like it should happen. either legalColor shouldn't be 15 or color shouldn't be 15/15
+		return
+	}
 
 	var (
-		p       P
-		stack   = []P{{cx, cy}}
-		stride  = dst.Stride
-		visited = map[P]struct{}{}
-		VISITED = struct{}{}
+		p      point
+		stack  = make([]point, 0, 320*190)
+		stride = dst.Stride
 	)
+
+	// initial
+	stack = append(stack, point{cx, cy})
 
 	for len(stack) > 0 {
 		p, stack = stack[0], stack[1:]
-
-		if _, v := visited[p]; v {
-			continue
-		}
-
-		visited[p] = VISITED
 
 		var (
 			x, y = p.x, p.y
 			i    = y*stride + x
 		)
 
-		if dst.Pix[i] != legalColor {
+		if !p.isLegal(dst, legalColor) {
 			continue
 		}
 
 		dst.Pix[i] = dither(x, y, color)
 
-		if down := (P{x, y + 1}); down.y < 190 {
-			if _, v := visited[down]; !v {
+		if down := (point{x, y + 1}); down.y < 190 {
+			if down.isLegal(dst, legalColor) {
 				stack = append(stack, down)
 			}
 		}
-		
-		if up := (P{x, y - 1}); up.y >= 0 {
-			if _, v := visited[up]; !v {
+
+		if up := (point{x, y - 1}); up.y >= 0 {
+			if up.isLegal(dst, legalColor) {
 				stack = append(stack, up)
 			}
 		}
 
 		// flood right
 		for dx := x + 1; dx < 320; dx++ {
-			visited[P{dx, y}] = VISITED
-
 			var i = y*stride + dx
 			if dst.Pix[i] != legalColor {
 				break
 			}
 
 			dst.Pix[i] = dither(dx, y, color)
-			if down := (P{dx, y + 1}); down.y < 190 {
-				if _, v := visited[down]; !v {
+			if down := (point{dx, y + 1}); down.y < 190 {
+				if down.isLegal(dst, legalColor) {
 					stack = append(stack, down)
 				}
 			}
-			if up := (P{dx, y - 1}); up.y >= 0 {
-				if _, v := visited[up]; !v {
+			if up := (point{dx, y - 1}); up.y >= 0 {
+				if up.isLegal(dst, legalColor) {
 					stack = append(stack, up)
 				}
 			}
@@ -628,21 +631,19 @@ func fill(cx, cy int, legalColor uint8, dst *image.Paletted, color uint8, dither
 
 		// flood left
 		for dx := x - 1; dx >= 0; dx-- {
-			visited[P{dx, y}] = VISITED
-
 			var i = y*stride + dx
 			if dst.Pix[i] != legalColor {
 				break
 			}
 
 			dst.Pix[i] = dither(dx, y, color)
-			if down := (P{dx, y + 1}); down.y < 190 {
-				if _, v := visited[down]; !v {
+			if down := (point{dx, y + 1}); down.y < 190 {
+				if down.isLegal(dst, legalColor) {
 					stack = append(stack, down)
 				}
 			}
-			if up := (P{dx, y - 1}); up.y >= 0 {
-				if _, v := visited[up]; !v {
+			if up := (point{dx, y - 1}); up.y >= 0 {
+				if up.isLegal(dst, legalColor) {
 					stack = append(stack, up)
 				}
 			}
