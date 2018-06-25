@@ -208,8 +208,8 @@ func (s *picState) debugger(params ...interface{}) {
 func (s *picState) fill(cx, cy int) {
 	switch {
 	case s.drawMode.Has(picDrawVisual):
+		// TODO this doesn't seem like it should happen. either legalColor shouldn't be 15 or color shouldn't be 15/15
 		if s.color == 255 {
-			// TODO this doesn't seem like it should happen. either legalColor shouldn't be 15 or color shouldn't be 15/15
 			return
 		}
 		fill(cx, cy, 0xf, s.visual, s.color, dither5050)
