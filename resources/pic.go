@@ -12,10 +12,7 @@ import (
 
 type ditherFn func(x, y int, color uint8) uint8
 
-var noDither = func(x, y int, color uint8) uint8 {
-	return color
-}
-
+var noDither = func(x, y int, color uint8) uint8 { return color }
 var dither5050 ditherFn = func(x, y int, color uint8) uint8 {
 	if (x&1)^(y&1) == 0 {
 		return color >> 4
