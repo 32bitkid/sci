@@ -199,12 +199,12 @@ type picState struct {
 	control  *image.Paletted
 	aux      *image.Paletted
 
-	debug []func(*picState)
+	debug []func(*picState, ...interface{})
 }
 
-func (s *picState) debugger() {
+func (s *picState) debugger(params ...interface{}) {
 	for _, fn := range s.debug {
-		fn(s)
+		fn(s, params...)
 	}
 }
 
@@ -252,7 +252,7 @@ func (s *picState) drawPattern(cx, cy int) {
 	}
 }
 
-func ReadPic(resource *Resource, debug ...func(*picState)) (image.Image, error) {
+func ReadPic(resource *Resource, debug ...func(*picState, ...interface{})) (image.Image, error) {
 	r := picReader{
 		bitreader.NewReader(bufio.NewReader(bytes.NewReader(resource.bytes))),
 	}
