@@ -652,7 +652,7 @@ func fill(cx, cy int, legalColor uint8, dst *image.Paletted, color uint8, dither
 }
 
 // (0..(7*7)) => i => int(math.Round(math.Sqrt(float64(i))))
-var sqrt = [50]int{
+var sqrts = [50]int{
 	0, 1, 1, 2, 2, 2, 2,
 	3, 3, 3, 3, 3, 3, 4,
 	4, 4, 4, 4, 4, 4, 4,
@@ -687,7 +687,7 @@ func drawPattern(cx, cy int, size int, isRect, isSolid bool, dst *image.Paletted
 			}
 
 			offset := (cy + y) * dst.Stride
-			sx := sqrt[r2-y*y]
+			sx := sqrts[r2-y*y]
 			for x := -sx; x <= sx; x++ {
 				if cx+x < 0 || cx+x >= 320 {
 					continue
@@ -700,11 +700,17 @@ func drawPattern(cx, cy int, size int, isRect, isSolid bool, dst *image.Paletted
 	}
 }
 
-func abs(v int) int {
+func absInt(v int) int {
 	if v < 0 {
 		return -v
 	}
 	return v
+}
+
+func swapIf(a, b *int, cond bool) {
+	if cond {
+		*a, *b = *b, *a
+	}
 }
 
 func line(x1, y1, x2, y2 int, dst *image.Paletted, color uint8, dither ditherFn) {
@@ -719,23 +725,17 @@ func line(x1, y1, x2, y2 int, dst *image.Paletted, color uint8, dither ditherFn)
 		return v
 	}
 
-	var swap = func(a, b *int, cond bool) {
-		if cond {
-			*a, *b = *b, *a
-		}
-	}
-
 	left, top := clip(x1, 0, 319), clip(y1, 0, 189)
 	right, bottom := clip(x2, 0, 319), clip(y2, 0, 189)
 
 	switch {
 	case left == right:
-		swap(&top, &bottom, top > bottom)
+		swapIf(&top, &bottom, top > bottom)
 		for y := top; y <= bottom; y++ {
 			dst.Pix[y*dst.Stride+left] = dither(left, y, color)
 		}
 	case top == bottom:
-		swap(&right, &left, right > left)
+		swapIf(&right, &left, right > left)
 		for x := right; x <= left; x++ {
 			dst.Pix[top*dst.Stride+x] = dither(x, top, color)
 		}
@@ -744,7 +744,7 @@ func line(x1, y1, x2, y2 int, dst *image.Paletted, color uint8, dither ditherFn)
 		dx, dy := right-left, bottom-top
 		stepX, stepY := ((dx>>15)<<1)+1, ((dy>>15)<<1)+1
 
-		dx, dy = abs(dx)<<1, abs(dy)<<1
+		dx, dy = absInt(dx)<<1, absInt(dy)<<1
 
 		dst.Pix[top*dst.Stride+left] = dither(left, top, color)
 		dst.Pix[bottom*dst.Stride+right] = dither(right, bottom, color)
