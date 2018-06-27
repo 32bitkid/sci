@@ -215,8 +215,14 @@ func (s *picState) fill(cx, cy int) {
 		fill(cx, cy, 0xf, s.visual, s.color, dither5050)
 		s.debugger()
 	case s.drawMode.Has(picDrawPriority):
+		if s.priorityCode == 0 {
+			return
+		}
 		fill(cx, cy, 0x0, s.priority, s.priorityCode, noDither)
 	case s.drawMode.Has(picDrawControl):
+		if s.controlCode == 0 {
+			return
+		}
 		fill(cx, cy, 0x0, s.control, s.controlCode, noDither)
 	default:
 		return
