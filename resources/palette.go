@@ -43,21 +43,21 @@ var egaPalette = []color.Color{
 var db16Palette = []color.Color{
 	rgb24Color{0x000000},
 	rgb24Color{0x3f3f74},
-	rgb24Color{0x37946e},
+	rgb24Color{0x4b692f},
 	rgb24Color{0x306082},
 	rgb24Color{0xac3232},
 	rgb24Color{0x45283c},
-	rgb24Color{0x663931},
-	rgb24Color{0x9badb7},
+	rgb24Color{0x8f563b},
+	rgb24Color{0x847e87},
 
-	rgb24Color{0x595652},
+	rgb24Color{0x323c39},
 	rgb24Color{0x639bff},
 	rgb24Color{0x6abe30},
 	rgb24Color{0x5fcde4},
 	rgb24Color{0xd95763},
 	rgb24Color{0xd77bba},
 	rgb24Color{0xfbf236},
-	rgb24Color{0xcbdbfc},
+	rgb24Color{0xffffff},
 }
 
 var gray16Palette = []color.Color{
