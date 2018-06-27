@@ -11,12 +11,12 @@ type rgb24Color struct {
 func (ega rgb24Color) RGBA() (r, g, b, a uint32) {
 	rb := uint32(ega.RGB >> 16 & 0xFF)
 	gb := uint32(ega.RGB >> 8 & 0xFF)
-	bb := uint32(ega.RGB & 0xFF)
+	bb := uint32(ega.RGB >> 0 & 0xFF)
 
 	r = rb<<8 | rb
 	g = gb<<8 | gb
 	b = bb<<8 | bb
-	a = 0xFFFFFF
+	a = 0xFFFF
 	return
 }
 
