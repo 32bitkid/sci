@@ -265,7 +265,7 @@ func ReadPic(resource *Resource, debug ...func(*picState, ...interface{})) (imag
 	}
 
 	var state = picState{
-		visual:   image.NewPaletted(image.Rect(0, 0, 320, 190), egaPalette),
+		visual:   image.NewPaletted(image.Rect(0, 0, 320, 190), db16Palette),
 		priority: image.NewPaletted(image.Rect(0, 0, 320, 190), gray16Palette),
 		control:  image.NewPaletted(image.Rect(0, 0, 320, 190), egaPalette),
 		aux:      image.NewPaletted(image.Rect(0, 0, 320, 190), egaPalette),

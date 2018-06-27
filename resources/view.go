@@ -48,7 +48,7 @@ func (g Group) GIF() *gif.GIF {
 			Pix:     s.Bitmap,
 			Stride:  int(s.Width),
 			Rect:    srcRect,
-			Palette: egaPalette,
+			Palette: db16Palette,
 		}
 
 		mask := image.NewAlpha(srcRect)
@@ -58,7 +58,7 @@ func (g Group) GIF() *gif.GIF {
 			}
 		}
 
-		img := image.NewPaletted(rect, egaPalette)
+		img := image.NewPaletted(rect, db16Palette)
 		for i := range img.Pix {
 			img.Pix[i] = 0x0
 		}
