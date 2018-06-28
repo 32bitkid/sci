@@ -8,6 +8,7 @@ import (
 	"github.com/32bitkid/bitreader"
 	"image"
 	"math/rand"
+	"image/color"
 )
 
 type ditherFn func(x, y int, color uint8) uint8
@@ -259,13 +260,17 @@ func (s *picState) drawPattern(cx, cy int) {
 	}
 }
 
-func ReadPic(resource *Resource, debug ...func(*picState, ...interface{})) (image.Image, error) {
+func ReadPic(
+	resource *Resource,
+	palette color.Palette,
+	debug ...func(*picState, ...interface{})) (image.Image, error,
+) {
 	r := picReader{
 		bitreader.NewReader(bufio.NewReader(bytes.NewReader(resource.bytes))),
 	}
 
 	var state = picState{
-		visual:   image.NewPaletted(image.Rect(0, 0, 320, 190), db16Palette),
+		visual:   image.NewPaletted(image.Rect(0, 0, 320, 190), palette),
 		priority: image.NewPaletted(image.Rect(0, 0, 320, 190), gray16Palette),
 		control:  image.NewPaletted(image.Rect(0, 0, 320, 190), egaPalette),
 		aux:      image.NewPaletted(image.Rect(0, 0, 320, 190), egaPalette),
