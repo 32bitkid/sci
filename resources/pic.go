@@ -11,14 +11,14 @@ import (
 	"image/color"
 )
 
-type ditherFn func(x, y int, color uint8) uint8
+type ditherFn func(x, y int, c1, c2 uint8) uint8
 
-var noDither = func(x, y int, color uint8) uint8 { return color }
-var dither5050 ditherFn = func(x, y int, color uint8) uint8 {
+var noDither = func(x, y int, c1, _ uint8) uint8 { return c1 }
+var dither5050 ditherFn = func(x, y int, c1, c2 uint8) uint8 {
 	if (x&1)^(y&1) == 0 {
-		return color >> 4
+		return c2
 	}
-	return color & 0xF
+	return c1
 }
 
 type picReader struct {
@@ -213,18 +213,21 @@ func (s *picState) fill(cx, cy int) {
 		if s.color == 255 {
 			return
 		}
-		fill(cx, cy, 0xf, s.visual, s.color, dither5050)
+		c1, c2 := s.color&0xF, s.color>>4
+		fill(cx, cy, 0xf, s.visual, c1, c2, dither5050)
 		s.debugger()
 	case s.drawMode.Has(picDrawPriority):
 		if s.priorityCode == 0 {
 			return
 		}
-		fill(cx, cy, 0x0, s.priority, s.priorityCode, noDither)
+		c := s.priorityCode
+		fill(cx, cy, 0x0, s.priority, c, c, noDither)
 	case s.drawMode.Has(picDrawControl):
 		if s.controlCode == 0 {
 			return
 		}
-		fill(cx, cy, 0x0, s.control, s.controlCode, noDither)
+		c := s.controlCode
+		fill(cx, cy, 0x0, s.control, c, c, noDither)
 	default:
 		return
 	}
@@ -232,14 +235,17 @@ func (s *picState) fill(cx, cy int) {
 
 func (s *picState) line(x1, y1, x2, y2 int) {
 	if s.drawMode.Has(picDrawVisual) {
-		line(x1, y1, x2, y2, s.visual, s.color, dither5050)
+		c1, c2 := s.color&0xF, s.color>>4
+		line(x1, y1, x2, y2, s.visual, c1, c2, dither5050)
 		s.debugger()
 	}
 	if s.drawMode.Has(picDrawPriority) {
-		line(x1, y1, x2, y2, s.priority, s.priorityCode, noDither)
+		c := s.priorityCode
+		line(x1, y1, x2, y2, s.priority, c, c, noDither)
 	}
 	if s.drawMode.Has(picDrawControl) {
-		line(x1, y1, x2, y2, s.control, s.controlCode, noDither)
+		c := s.controlCode
+		line(x1, y1, x2, y2, s.control, c, c, noDither)
 	}
 }
 
@@ -249,14 +255,17 @@ func (s *picState) drawPattern(cx, cy int) {
 	solid := s.patternCode&0x20 == 0
 
 	if s.drawMode.Has(picDrawVisual) {
-		drawPattern(cx, cy, size, isRect, solid, s.visual, s.color, dither5050)
+		c1, c2 := s.color&0xF, s.color>>4
+		drawPattern(cx, cy, size, isRect, solid, s.visual, c1, c2, dither5050)
 		s.debugger()
 	}
 	if s.drawMode.Has(picDrawPriority) {
-		drawPattern(cx, cy, size, isRect, solid, s.priority, s.priorityCode, noDither)
+		c := s.priorityCode
+		drawPattern(cx, cy, size, isRect, solid, s.priority, c, c, noDither)
 	}
 	if s.drawMode.Has(picDrawControl) {
-		drawPattern(cx, cy, size, isRect, solid, s.control, s.controlCode, noDither)
+		c := s.controlCode
+		drawPattern(cx, cy, size, isRect, solid, s.control, c, c, noDither)
 	}
 }
 
@@ -580,7 +589,7 @@ func (p point) isLegal(dst *image.Paletted, legalColor uint8) bool {
 	return dst.Pix[idx] == legalColor
 }
 
-func fill(cx, cy int, legalColor uint8, dst *image.Paletted, color uint8, dither ditherFn) {
+func fill(cx, cy int, legalColor uint8, dst *image.Paletted, c1, c2 uint8, dither ditherFn) {
 	var (
 		p      point
 		stack  = make([]point, 0, 320*190)
@@ -602,7 +611,7 @@ func fill(cx, cy int, legalColor uint8, dst *image.Paletted, color uint8, dither
 			continue
 		}
 
-		dst.Pix[i] = dither(x, y, color)
+		dst.Pix[i] = dither(x, y, c1, c2)
 
 		if down := (point{x, y + 1}); down.y < 190 {
 			if down.isLegal(dst, legalColor) {
@@ -623,7 +632,7 @@ func fill(cx, cy int, legalColor uint8, dst *image.Paletted, color uint8, dither
 				break
 			}
 
-			dst.Pix[i] = dither(dx, y, color)
+			dst.Pix[i] = dither(dx, y, c1, c2)
 			if down := (point{dx, y + 1}); down.y < 190 {
 				if down.isLegal(dst, legalColor) {
 					stack = append(stack, down)
@@ -643,7 +652,7 @@ func fill(cx, cy int, legalColor uint8, dst *image.Paletted, color uint8, dither
 				break
 			}
 
-			dst.Pix[i] = dither(dx, y, color)
+			dst.Pix[i] = dither(dx, y, c1, c2)
 			if down := (point{dx, y + 1}); down.y < 190 {
 				if down.isLegal(dst, legalColor) {
 					stack = append(stack, down)
@@ -669,7 +678,7 @@ var sqrts = [50]int{
 	6, 7, 7, 7, 7, 7, 7,
 }
 
-func drawPattern(cx, cy int, size int, isRect, isSolid bool, dst *image.Paletted, color uint8, dither ditherFn) {
+func drawPattern(cx, cy int, size int, isRect, isSolid bool, dst *image.Paletted, c1, c2 uint8, dither ditherFn) {
 	if isRect {
 		for y := -size; y <= size; y++ {
 			if cy+y < 0 || cy+y >= 190 {
@@ -682,7 +691,7 @@ func drawPattern(cx, cy int, size int, isRect, isSolid bool, dst *image.Paletted
 					continue
 				}
 				if isSolid || rand.Float64() < 0.5 {
-					dst.Pix[offset+cx+x] = dither(cx+x, y, color)
+					dst.Pix[offset+cx+x] = dither(cx+x, y, c1, c2)
 				}
 			}
 		}
@@ -700,7 +709,7 @@ func drawPattern(cx, cy int, size int, isRect, isSolid bool, dst *image.Paletted
 					continue
 				}
 				if isSolid || rand.Float64() < 0.5 {
-					dst.Pix[offset+cx+x] = dither(cx+x, y, color)
+					dst.Pix[offset+cx+x] = dither(cx+x, y, c1, c2)
 				}
 			}
 		}
@@ -720,7 +729,7 @@ func swapIf(a, b *int, cond bool) {
 	}
 }
 
-func line(x1, y1, x2, y2 int, dst *image.Paletted, color uint8, dither ditherFn) {
+func line(x1, y1, x2, y2 int, dst *image.Paletted, c1, c2 uint8, dither ditherFn) {
 	// helpers
 	var clip = func(v, min, max int) int {
 		switch {
@@ -739,12 +748,12 @@ func line(x1, y1, x2, y2 int, dst *image.Paletted, color uint8, dither ditherFn)
 	case left == right:
 		swapIf(&top, &bottom, top > bottom)
 		for y := top; y <= bottom; y++ {
-			dst.Pix[y*dst.Stride+left] = dither(left, y, color)
+			dst.Pix[y*dst.Stride+left] = dither(left, y, c1, c2)
 		}
 	case top == bottom:
 		swapIf(&right, &left, right > left)
 		for x := right; x <= left; x++ {
-			dst.Pix[top*dst.Stride+x] = dither(x, top, color)
+			dst.Pix[top*dst.Stride+x] = dither(x, top, c1, c2)
 		}
 	default:
 		// bresenham
@@ -753,8 +762,8 @@ func line(x1, y1, x2, y2 int, dst *image.Paletted, color uint8, dither ditherFn)
 
 		dx, dy = absInt(dx)<<1, absInt(dy)<<1
 
-		dst.Pix[top*dst.Stride+left] = dither(left, top, color)
-		dst.Pix[bottom*dst.Stride+right] = dither(right, bottom, color)
+		dst.Pix[top*dst.Stride+left] = dither(left, top, c1, c2)
+		dst.Pix[bottom*dst.Stride+right] = dither(right, bottom, c1, c2)
 
 		if dx > dy {
 			fraction := dy - (dx >> 1)
@@ -765,7 +774,7 @@ func line(x1, y1, x2, y2 int, dst *image.Paletted, color uint8, dither ditherFn)
 				}
 				left += stepX
 				fraction += dy
-				dst.Pix[top*dst.Stride+left] = dither(left, top, color)
+				dst.Pix[top*dst.Stride+left] = dither(left, top, c1, c2)
 			}
 		} else {
 			fraction := dx - (dy >> 1)
@@ -776,7 +785,7 @@ func line(x1, y1, x2, y2 int, dst *image.Paletted, color uint8, dither ditherFn)
 				}
 				top += stepY
 				fraction += dx
-				dst.Pix[top*dst.Stride+left] = dither(left, top, color)
+				dst.Pix[top*dst.Stride+left] = dither(left, top, c1, c2)
 			}
 		}
 	}
