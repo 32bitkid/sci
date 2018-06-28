@@ -199,12 +199,12 @@ type picState struct {
 
 	unditherer Unditherer
 
-	debug []func(*picState, ...interface{})
+	debugFn func(*picState, ...interface{})
 }
 
 func (s *picState) debugger(params ...interface{}) {
-	for _, fn := range s.debug {
-		fn(s, params...)
+	if s.debugFn != nil {
+		s.debugFn(s, params...)
 	}
 }
 
@@ -283,25 +283,37 @@ func (u Unditherer) color(c uint8) (uint8, uint8) {
 type PicOptions struct {
 	Palette color.Palette
 	Unditherer
+	DebugFn func(*picState, ...interface{})
 }
 
 func ReadPic(
 	resource *Resource,
-	options *PicOptions,
-	debug ...func(*picState, ...interface{})) (image.Image, error,
-) {
+	options ...*PicOptions,
+) (image.Image, error) {
 	r := picReader{
 		bitreader.NewReader(bufio.NewReader(bytes.NewReader(resource.bytes))),
 	}
 
 	palette := egaPalette
-	if options != nil && options.Palette != nil {
-		palette = options.Palette
-	}
-
 	var unditherer Unditherer
-	if options != nil && options.Unditherer != nil {
-		unditherer = options.Unditherer
+	var debugFn func(*picState, ...interface{})
+
+	for _, opts := range options {
+		if opts == nil {
+			continue
+		}
+
+		if opts.Palette != nil {
+			palette = opts.Palette
+		}
+
+		if opts.Unditherer != nil {
+			unditherer = opts.Unditherer
+		}
+
+		if opts.DebugFn != nil {
+			debugFn = opts.DebugFn
+		}
 	}
 
 	var state = picState{
@@ -317,7 +329,7 @@ func ReadPic(
 			defaultPalette,
 		},
 		unditherer: unditherer,
-		debug:      debug,
+		debugFn:    debugFn,
 	}
 
 	for i := 0; i < (320 * 190); i++ {
