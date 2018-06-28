@@ -197,6 +197,8 @@ type picState struct {
 	control  *image.Paletted
 	aux      *image.Paletted
 
+	unditherer Unditherer
+
 	debug []func(*picState, ...interface{})
 }
 
@@ -213,7 +215,7 @@ func (s *picState) fill(cx, cy int) {
 		if s.color == 255 {
 			return
 		}
-		c1, c2 := s.color&0xF, s.color>>4
+		c1, c2 := s.unditherer.color(s.color)
 		fill(cx, cy, 0xf, s.visual, c1, c2, dither5050)
 		s.debugger()
 	case s.drawMode.Has(picDrawPriority):
@@ -235,7 +237,7 @@ func (s *picState) fill(cx, cy int) {
 
 func (s *picState) line(x1, y1, x2, y2 int) {
 	if s.drawMode.Has(picDrawVisual) {
-		c1, c2 := s.color&0xF, s.color>>4
+		c1, c2 := s.unditherer.color(s.color)
 		line(x1, y1, x2, y2, s.visual, c1, c2, dither5050)
 		s.debugger()
 	}
@@ -255,7 +257,7 @@ func (s *picState) drawPattern(cx, cy int) {
 	solid := s.patternCode&0x20 == 0
 
 	if s.drawMode.Has(picDrawVisual) {
-		c1, c2 := s.color&0xF, s.color>>4
+		c1, c2 := s.unditherer.color(s.color)
 		drawPattern(cx, cy, size, isRect, solid, s.visual, c1, c2, dither5050)
 		s.debugger()
 	}
@@ -269,13 +271,37 @@ func (s *picState) drawPattern(cx, cy int) {
 	}
 }
 
+type Unditherer map[uint8]struct{ c1, c2 uint8 }
+
+func (u Unditherer) color(c uint8) (uint8, uint8) {
+	if e, ok := u[c]; ok {
+		return e.c1, e.c2
+	}
+	return c & 0xF, c >> 4
+}
+
+type PicOptions struct {
+	Palette color.Palette
+	Unditherer
+}
+
 func ReadPic(
 	resource *Resource,
-	palette color.Palette,
+	options *PicOptions,
 	debug ...func(*picState, ...interface{})) (image.Image, error,
 ) {
 	r := picReader{
 		bitreader.NewReader(bufio.NewReader(bytes.NewReader(resource.bytes))),
+	}
+
+	palette := egaPalette
+	if options != nil && options.Palette != nil {
+		palette = options.Palette
+	}
+
+	var unditherer Unditherer
+	if options != nil && options.Unditherer != nil {
+		unditherer = options.Unditherer
 	}
 
 	var state = picState{
@@ -290,7 +316,8 @@ func ReadPic(
 			defaultPalette,
 			defaultPalette,
 		},
-		debug: debug,
+		unditherer: unditherer,
+		debug:      debug,
 	}
 
 	for i := 0; i < (320 * 190); i++ {
