@@ -214,7 +214,22 @@ var extendedUnditherer = map[uint8]struct{ c1, c2 uint8 }{
 	0x8a: {0x3f, 0x3e}, 0xa8: {0x3e, 0x3f},
 	0xaa: {0x3f, 0x3f},
 	0x23: {0x02, 0x37}, 0x32: {0x37, 0x02},
+}
 
+func CreateUnditherer(pal color.Palette) (color.Palette, Unditherer) {
+	newPal := make(color.Palette, len(pal), 256)
+	undith := Unditherer{}
+	copy(newPal, pal)
+	for a := uint8(0); a < 0x10; a++ {
+		for b := a + 1; b < 0x10; b++ {
+			idx := uint8(len(newPal))
+			newPal = append(newPal, rgbmix(pal[a], pal[b], 0.5))
+			entry := struct{ c1, c2 uint8 }{idx, idx}
+			undith[a<<4|b] = entry
+			undith[b<<4|a] = entry
+		}
+	}
+	return newPal, undith
 }
 
 var gray16Palette = []color.Color{
