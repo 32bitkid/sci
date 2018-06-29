@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"github.com/32bitkid/bitreader"
 	"image"
-	"math/rand"
 	"image/color"
+	"math/rand"
 )
 
 type ditherFn func(x, y int, c1, c2 uint8) uint8
