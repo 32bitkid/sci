@@ -767,21 +767,20 @@ func swapIf(a, b *int, cond bool) {
 		*a, *b = *b, *a
 	}
 }
-
-func line(x1, y1, x2, y2 int, dst *image.Paletted, c1, c2 uint8, dither ditherFn) {
-	// helpers
-	var clip = func(v, min, max int) int {
-		switch {
-		case v < min:
-			return min
-		case v > max:
-			return max
-		}
-		return v
+func clip(v *int, min, max int) {
+	switch {
+	case *v < min:
+		*v = min
+	case *v > max:
+		*v = max
 	}
+}
 
-	left, top := clip(x1, 0, 319), clip(y1, 0, 189)
-	right, bottom := clip(x2, 0, 319), clip(y2, 0, 189)
+func line(left, top, right, bottom int, dst *image.Paletted, c1, c2 uint8, dither ditherFn) {
+	clip(&left, 0, 319)
+	clip(&top, 0, 189)
+	clip(&right, 0, 319)
+	clip(&bottom, 0, 189)
 
 	switch {
 	case left == right:
