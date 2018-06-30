@@ -12,7 +12,7 @@ type Group struct {
 	Sprites []Sprite
 }
 
-func (g Group) GIF() *gif.GIF {
+func (g Group) GIF(palette *Colors) *gif.GIF {
 	var images []*image.Paletted
 	var delays []int
 	var dispose []byte
@@ -48,7 +48,7 @@ func (g Group) GIF() *gif.GIF {
 			Pix:     s.Bitmap,
 			Stride:  int(s.Width),
 			Rect:    srcRect,
-			Palette: db16Palette,
+			Palette: palette.Palette,
 		}
 
 		mask := image.NewAlpha(srcRect)
@@ -58,7 +58,7 @@ func (g Group) GIF() *gif.GIF {
 			}
 		}
 
-		img := image.NewPaletted(rect, db16Palette)
+		img := image.NewPaletted(rect, palette.Palette)
 		for i := range img.Pix {
 			img.Pix[i] = 0x0
 		}

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/32bitkid/bitreader"
 	"image"
-	"image/color"
 	"math/rand"
 )
 
@@ -271,18 +270,8 @@ func (s *picState) drawPattern(cx, cy int) {
 	}
 }
 
-type Unditherer map[uint8]struct{ c1, c2 uint8 }
-
-func (u Unditherer) color(c uint8) (uint8, uint8) {
-	if e, ok := u[c]; ok {
-		return e.c1, e.c2
-	}
-	return c & 0xF, c >> 4
-}
-
 type PicOptions struct {
-	Palette color.Palette
-	Unditherer
+	*Colors
 	DebugFn func(*picState, ...interface{})
 }
 
@@ -294,20 +283,20 @@ func ReadPic(
 		bitreader.NewReader(bufio.NewReader(bytes.NewReader(resource.bytes))),
 	}
 
-	palette := egaPalette
-	var unditherer Unditherer
 	var debugFn func(*picState, ...interface{})
+	palette := EGAPalette.Palette
+	unditherer := EGAPalette.Unditherer
 
 	for _, opts := range options {
 		if opts == nil {
 			continue
 		}
 
-		if opts.Palette != nil {
+		if opts.Colors != nil && opts.Palette != nil {
 			palette = opts.Palette
 		}
 
-		if opts.Unditherer != nil {
+		if opts.Colors != nil && opts.Unditherer != nil {
 			unditherer = opts.Unditherer
 		}
 
@@ -318,9 +307,9 @@ func ReadPic(
 
 	var state = picState{
 		visual:   image.NewPaletted(image.Rect(0, 0, 320, 190), palette),
-		priority: image.NewPaletted(image.Rect(0, 0, 320, 190), gray16Palette),
-		control:  image.NewPaletted(image.Rect(0, 0, 320, 190), egaPalette),
-		aux:      image.NewPaletted(image.Rect(0, 0, 320, 190), egaPalette),
+		priority: image.NewPaletted(image.Rect(0, 0, 320, 190), DepthPalette),
+		control:  image.NewPaletted(image.Rect(0, 0, 320, 190), DepthPalette),
+		aux:      image.NewPaletted(image.Rect(0, 0, 320, 190), DepthPalette),
 		drawMode: picDrawVisual | picDrawPriority,
 		palettes: [...]picPalette{
 			defaultPalette,
