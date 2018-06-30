@@ -725,7 +725,7 @@ func drawPattern(cx, cy int, size int, isRect, isSolid bool, dst *image.Paletted
 			}
 
 			offset := (cy + y) * dst.Stride
-			for x := -size; x <= size; x++ {
+			for x := -size; x <= size+1; x++ {
 				if cx+x < 0 || cx+x >= 320 {
 					continue
 				}
