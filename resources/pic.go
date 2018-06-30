@@ -16,9 +16,9 @@ type ditherFn func(x, y int, c1, c2 uint8) uint8
 var noDither = func(x, y int, c1, _ uint8) uint8 { return c1 }
 var dither5050 ditherFn = func(x, y int, c1, c2 uint8) uint8 {
 	if (x&1)^(y&1) == 0 {
-		return c2
+		return c1
 	}
-	return c1
+	return c2
 }
 
 type picReader struct {
