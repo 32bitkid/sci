@@ -620,7 +620,7 @@ func (p point) isLegal(dst *image.Paletted, legalColor uint8) bool {
 func fill(cx, cy int, legalColor uint8, dst *image.Paletted, c1, c2 uint8, dither ditherFn) {
 	var (
 		p      point
-		stack  = make([]point, 0, 320*190)
+		stack  []point
 		stride = dst.Stride
 	)
 
