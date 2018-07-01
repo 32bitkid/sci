@@ -49,6 +49,26 @@ func (u Unditherer) color(c uint8) (uint8, uint8) {
 	return c & 0xF, c >> 4
 }
 
+var Depth16Palette = color.Palette{
+	color.Gray{0x00},
+	color.Gray{0x11},
+	color.Gray{0x22},
+	color.Gray{0x33},
+	color.Gray{0x44},
+	color.Gray{0x55},
+	color.Gray{0x66},
+	color.Gray{0x77},
+
+	color.Gray{0x88},
+	color.Gray{0x99},
+	color.Gray{0xAA},
+	color.Gray{0xBB},
+	color.Gray{0xCC},
+	color.Gray{0xDD},
+	color.Gray{0xEE},
+	color.Gray{0xFF},
+}
+
 var RetroEGAColors = &Colors{
 	Palette: color.Palette{
 		rgb24Color{0x000000},
@@ -129,7 +149,7 @@ var ExtendedColors = &Colors{
 		0x1c: rgb24Color{0xdf7126}, // tahiti-gold
 		0x1d: rgb24Color{0x8a6f30}, // stinger
 		0x1e: rgb24Color{0xeec39a}, // pancho
-		0x1f: rgb24Color{0x696a6a}, //  dim-gray
+		0x1f: rgb24Color{0x696a6a}, // dim-gray
 
 		0x20: rgbMix(DB32EGAColors.Palette[0xc], DB32EGAColors.Palette[0xe], 1.0/3.0),
 		0x21: rgbMix(DB32EGAColors.Palette[0xc], DB32EGAColors.Palette[0xe], 2.0/3.0),
@@ -290,24 +310,4 @@ func CreateAdaptiveDithering(in color.Palette, lower, upper float64) *Colors {
 		Palette:    pal,
 		Unditherer: undither,
 	}
-}
-
-var DepthPalette = []color.Color{
-	color.Gray{0x00},
-	color.Gray{0x11},
-	color.Gray{0x22},
-	color.Gray{0x33},
-	color.Gray{0x44},
-	color.Gray{0x55},
-	color.Gray{0x66},
-	color.Gray{0x77},
-
-	color.Gray{0x88},
-	color.Gray{0x99},
-	color.Gray{0xAA},
-	color.Gray{0xBB},
-	color.Gray{0xCC},
-	color.Gray{0xDD},
-	color.Gray{0xEE},
-	color.Gray{0xFF},
 }

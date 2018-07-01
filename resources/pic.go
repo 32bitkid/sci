@@ -307,9 +307,9 @@ func ReadPic(
 
 	var state = picState{
 		visual:   image.NewPaletted(image.Rect(0, 0, 320, 190), palette),
-		priority: image.NewPaletted(image.Rect(0, 0, 320, 190), DepthPalette),
-		control:  image.NewPaletted(image.Rect(0, 0, 320, 190), DepthPalette),
-		aux:      image.NewPaletted(image.Rect(0, 0, 320, 190), DepthPalette),
+		priority: image.NewPaletted(image.Rect(0, 0, 320, 190), Depth16Palette),
+		control:  image.NewPaletted(image.Rect(0, 0, 320, 190), Depth16Palette),
+		aux:      image.NewPaletted(image.Rect(0, 0, 320, 190), Depth16Palette),
 		drawMode: picDrawVisual | picDrawPriority,
 		palettes: [...]picPalette{
 			defaultPalette,
