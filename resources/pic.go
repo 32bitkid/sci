@@ -284,8 +284,8 @@ func ReadPic(
 	}
 
 	var debugFn func(*picState, ...interface{})
-	palette := EGAPalette.Palette
-	unditherer := EGAPalette.Unditherer
+	palette := RetroEGAColors.Palette
+	unditherer := RetroEGAColors.Unditherer
 
 	for _, opts := range options {
 		if opts == nil {

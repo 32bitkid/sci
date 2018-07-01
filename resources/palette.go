@@ -49,7 +49,7 @@ func (u Unditherer) color(c uint8) (uint8, uint8) {
 	return c & 0xF, c >> 4
 }
 
-var EGAPalette = &Colors{
+var RetroEGAColors = &Colors{
 	Palette: color.Palette{
 		rgb24Color{0x000000},
 		rgb24Color{0x0000AA},
@@ -71,7 +71,7 @@ var EGAPalette = &Colors{
 	},
 }
 
-var DB32EGAPalette = &Colors{
+var DB32EGAColors = &Colors{
 	Palette: color.Palette{
 		rgb24Color{0x000000},
 		rgb24Color{0x3f3f74},
@@ -93,7 +93,7 @@ var DB32EGAPalette = &Colors{
 	},
 }
 
-var ExtendedPalette = &Colors{
+var ExtendedColors = &Colors{
 	Palette: color.Palette{
 		0x00: rgb24Color{0x000000}, // black
 		0x01: rgb24Color{0x3f3f74}, // deep-koamaru
@@ -131,56 +131,56 @@ var ExtendedPalette = &Colors{
 		0x1e: rgb24Color{0xeec39a}, // pancho
 		0x1f: rgb24Color{0x696a6a}, //  dim-gray
 
-		0x20: rgbMix(DB32EGAPalette.Palette[0xc], DB32EGAPalette.Palette[0xe], 1.0/3.0),
-		0x21: rgbMix(DB32EGAPalette.Palette[0xc], DB32EGAPalette.Palette[0xe], 2.0/3.0),
-		0x22: rgbMix(DB32EGAPalette.Palette[0xe], DB32EGAPalette.Palette[0xf], 0.5),
-		0x23: rgbMix(DB32EGAPalette.Palette[0x0], DB32EGAPalette.Palette[0x8], 1.0/3.0),
-		0x24: rgbMix(DB32EGAPalette.Palette[0x0], DB32EGAPalette.Palette[0x8], 2.0/3.0),
-		0x25: rgbMix(DB32EGAPalette.Palette[0x4], DB32EGAPalette.Palette[0x8], 2.0/4.0),
-		0x26: rgbMix(DB32EGAPalette.Palette[0x4], DB32EGAPalette.Palette[0x8], 2.0/3.0),
-		0x27: rgbMix(DB32EGAPalette.Palette[0xc], DB32EGAPalette.Palette[0x8], 1.0/3.0),
-		0x28: rgbMix(DB32EGAPalette.Palette[0xc], DB32EGAPalette.Palette[0x8], 2.0/3.0),
-		0x29: rgbMix(DB32EGAPalette.Palette[0x6], DB32EGAPalette.Palette[0xc], 1.0/3.0),
-		0x2a: rgbMix(DB32EGAPalette.Palette[0x6], DB32EGAPalette.Palette[0xc], 2.0/3.0),
-		0x2b: rgbMix(rgb24Color{0x9badb7}, DB32EGAPalette.Palette[0xf], 1.5/3.0),
-		0x2c: rgbMix(DB32EGAPalette.Palette[0x8], DB32EGAPalette.Palette[0x9], 1.0/3.0),
-		0x2d: rgbMix(DB32EGAPalette.Palette[0x8], DB32EGAPalette.Palette[0x9], 2.0/3.0),
-		0x2e: rgbMix(DB32EGAPalette.Palette[0x0], DB32EGAPalette.Palette[0x4], 1.0/3.0),
-		0x2f: rgbMix(DB32EGAPalette.Palette[0x0], DB32EGAPalette.Palette[0x4], 2.0/3.0),
+		0x20: rgbMix(DB32EGAColors.Palette[0xc], DB32EGAColors.Palette[0xe], 1.0/3.0),
+		0x21: rgbMix(DB32EGAColors.Palette[0xc], DB32EGAColors.Palette[0xe], 2.0/3.0),
+		0x22: rgbMix(DB32EGAColors.Palette[0xe], DB32EGAColors.Palette[0xf], 0.5),
+		0x23: rgbMix(DB32EGAColors.Palette[0x0], DB32EGAColors.Palette[0x8], 1.0/3.0),
+		0x24: rgbMix(DB32EGAColors.Palette[0x0], DB32EGAColors.Palette[0x8], 2.0/3.0),
+		0x25: rgbMix(DB32EGAColors.Palette[0x4], DB32EGAColors.Palette[0x8], 2.0/4.0),
+		0x26: rgbMix(DB32EGAColors.Palette[0x4], DB32EGAColors.Palette[0x8], 2.0/3.0),
+		0x27: rgbMix(DB32EGAColors.Palette[0xc], DB32EGAColors.Palette[0x8], 1.0/3.0),
+		0x28: rgbMix(DB32EGAColors.Palette[0xc], DB32EGAColors.Palette[0x8], 2.0/3.0),
+		0x29: rgbMix(DB32EGAColors.Palette[0x6], DB32EGAColors.Palette[0xc], 1.0/3.0),
+		0x2a: rgbMix(DB32EGAColors.Palette[0x6], DB32EGAColors.Palette[0xc], 2.0/3.0),
+		0x2b: rgbMix(rgb24Color{0x9badb7}, DB32EGAColors.Palette[0xf], 1.5/3.0),
+		0x2c: rgbMix(DB32EGAColors.Palette[0x8], DB32EGAColors.Palette[0x9], 1.0/3.0),
+		0x2d: rgbMix(DB32EGAColors.Palette[0x8], DB32EGAColors.Palette[0x9], 2.0/3.0),
+		0x2e: rgbMix(DB32EGAColors.Palette[0x0], DB32EGAColors.Palette[0x4], 1.0/3.0),
+		0x2f: rgbMix(DB32EGAColors.Palette[0x0], DB32EGAColors.Palette[0x4], 2.0/3.0),
 
-		0x30: rgbMix(DB32EGAPalette.Palette[0x4], DB32EGAPalette.Palette[0xc], 1.0/3.0),
-		0x31: rgbMix(DB32EGAPalette.Palette[0x4], DB32EGAPalette.Palette[0xc], 2.0/3.0),
+		0x30: rgbMix(DB32EGAColors.Palette[0x4], DB32EGAColors.Palette[0xc], 1.0/3.0),
+		0x31: rgbMix(DB32EGAColors.Palette[0x4], DB32EGAColors.Palette[0xc], 2.0/3.0),
 		0x32: rgb24Color{0xcd69ca},
-		0x33: rgbMix(DB32EGAPalette.Palette[0xb], DB32EGAPalette.Palette[0xf], 1.0/3.0),
-		0x34: rgbMix(DB32EGAPalette.Palette[0xb], DB32EGAPalette.Palette[0xf], 2.0/3.0),
-		0x35: rgbMix(DB32EGAPalette.Palette[0x3], DB32EGAPalette.Palette[0xb], 1.25/3.0),
-		0x36: rgbMix(DB32EGAPalette.Palette[0x3], DB32EGAPalette.Palette[0xb], 1.75/3.0),
-		0x37: rgbMix(DB32EGAPalette.Palette[0x2], DB32EGAPalette.Palette[0xb], 1.0/3.0),
-		0x38: rgbMix(DB32EGAPalette.Palette[0x2], DB32EGAPalette.Palette[0x8], 1.5/3.0),
-		0x39: rgbMix(DB32EGAPalette.Palette[0xd], DB32EGAPalette.Palette[0xf], 1.5/3.0),
-		0x3a: rgbMix(rgb24Color{0xeec39a}, DB32EGAPalette.Palette[0xe], 1.5/3.0),
-		0x3b: rgbMix(DB32EGAPalette.Palette[0x8], rgb24Color{0x524b24}, 1.5/3.0),
-		0x3c: rgbMix(DB32EGAPalette.Palette[0x0], DB32EGAPalette.Palette[0xa], 1.0/3.0),
+		0x33: rgbMix(DB32EGAColors.Palette[0xb], DB32EGAColors.Palette[0xf], 1.0/3.0),
+		0x34: rgbMix(DB32EGAColors.Palette[0xb], DB32EGAColors.Palette[0xf], 2.0/3.0),
+		0x35: rgbMix(DB32EGAColors.Palette[0x3], DB32EGAColors.Palette[0xb], 1.25/3.0),
+		0x36: rgbMix(DB32EGAColors.Palette[0x3], DB32EGAColors.Palette[0xb], 1.75/3.0),
+		0x37: rgbMix(DB32EGAColors.Palette[0x2], DB32EGAColors.Palette[0xb], 1.0/3.0),
+		0x38: rgbMix(DB32EGAColors.Palette[0x2], DB32EGAColors.Palette[0x8], 1.5/3.0),
+		0x39: rgbMix(DB32EGAColors.Palette[0xd], DB32EGAColors.Palette[0xf], 1.5/3.0),
+		0x3a: rgbMix(rgb24Color{0xeec39a}, DB32EGAColors.Palette[0xe], 1.5/3.0),
+		0x3b: rgbMix(DB32EGAColors.Palette[0x8], rgb24Color{0x524b24}, 1.5/3.0),
+		0x3c: rgbMix(DB32EGAColors.Palette[0x0], DB32EGAColors.Palette[0xa], 1.0/3.0),
 		0x3d: color.Black,
-		0x3e: rgbMix(DB32EGAPalette.Palette[0x8], DB32EGAPalette.Palette[0xa], 1.25/3.0),
-		0x3f: rgbMix(DB32EGAPalette.Palette[0x8], DB32EGAPalette.Palette[0xa], 1.75/3.0),
+		0x3e: rgbMix(DB32EGAColors.Palette[0x8], DB32EGAColors.Palette[0xa], 1.25/3.0),
+		0x3f: rgbMix(DB32EGAColors.Palette[0x8], DB32EGAColors.Palette[0xa], 1.75/3.0),
 
-		0x40: rgbMix(DB32EGAPalette.Palette[0x8], DB32EGAPalette.Palette[0xe], 1.5/3.0),
-		0x41: rgbMix(DB32EGAPalette.Palette[0x8], DB32EGAPalette.Palette[0xe], 2.5/3.0),
-		0x42: rgbMix(DB32EGAPalette.Palette[0x5], DB32EGAPalette.Palette[0xb], 1.0/3.0),
-		0x43: rgbMix(DB32EGAPalette.Palette[0x5], DB32EGAPalette.Palette[0xb], 2.0/3.0),
-		0x44: rgbMix(DB32EGAPalette.Palette[0xb], DB32EGAPalette.Palette[0xd], 0.75/3.0),
-		0x45: rgbMix(DB32EGAPalette.Palette[0xb], DB32EGAPalette.Palette[0xd], 1.75/3.0),
-		0x46: rgbMix(DB32EGAPalette.Palette[0x4], DB32EGAPalette.Palette[0x7], 1.5/3.0),
-		0x47: rgbMix(rgb24Color{0x9badb7}, DB32EGAPalette.Palette[0xc], 1.75/3.0),
-		0x48: rgbMix(DB32EGAPalette.Palette[0x8], DB32EGAPalette.Palette[0xb], 1.25/3.0),
-		0x49: rgbMix(DB32EGAPalette.Palette[0x8], DB32EGAPalette.Palette[0xb], 1.75/3.0),
-		0x4a: rgbMix(DB32EGAPalette.Palette[0x6], DB32EGAPalette.Palette[0x7], 1.0/3.0),
-		0x4b: rgbMix(DB32EGAPalette.Palette[0x6], DB32EGAPalette.Palette[0x7], 2.0/3.0),
-		0x4c: rgbMix(DB32EGAPalette.Palette[0x6], DB32EGAPalette.Palette[0xe], 2.0/3.0),
-		0x4d: rgbMix(DB32EGAPalette.Palette[0x3], DB32EGAPalette.Palette[0xd], 1.25/3.0),
-		0x4e: rgbMix(DB32EGAPalette.Palette[0x3], DB32EGAPalette.Palette[0xd], 1.75/3.0),
-		0x4f: rgbMix(rgb24Color{0x5b6ee1}, DB32EGAPalette.Palette[0xb], 2.25/3.0),
+		0x40: rgbMix(DB32EGAColors.Palette[0x8], DB32EGAColors.Palette[0xe], 1.5/3.0),
+		0x41: rgbMix(DB32EGAColors.Palette[0x8], DB32EGAColors.Palette[0xe], 2.5/3.0),
+		0x42: rgbMix(DB32EGAColors.Palette[0x5], DB32EGAColors.Palette[0xb], 1.0/3.0),
+		0x43: rgbMix(DB32EGAColors.Palette[0x5], DB32EGAColors.Palette[0xb], 2.0/3.0),
+		0x44: rgbMix(DB32EGAColors.Palette[0xb], DB32EGAColors.Palette[0xd], 0.75/3.0),
+		0x45: rgbMix(DB32EGAColors.Palette[0xb], DB32EGAColors.Palette[0xd], 1.75/3.0),
+		0x46: rgbMix(DB32EGAColors.Palette[0x4], DB32EGAColors.Palette[0x7], 1.5/3.0),
+		0x47: rgbMix(rgb24Color{0x9badb7}, DB32EGAColors.Palette[0xc], 1.75/3.0),
+		0x48: rgbMix(DB32EGAColors.Palette[0x8], DB32EGAColors.Palette[0xb], 1.25/3.0),
+		0x49: rgbMix(DB32EGAColors.Palette[0x8], DB32EGAColors.Palette[0xb], 1.75/3.0),
+		0x4a: rgbMix(DB32EGAColors.Palette[0x6], DB32EGAColors.Palette[0x7], 1.0/3.0),
+		0x4b: rgbMix(DB32EGAColors.Palette[0x6], DB32EGAColors.Palette[0x7], 2.0/3.0),
+		0x4c: rgbMix(DB32EGAColors.Palette[0x6], DB32EGAColors.Palette[0xe], 2.0/3.0),
+		0x4d: rgbMix(DB32EGAColors.Palette[0x3], DB32EGAColors.Palette[0xd], 1.25/3.0),
+		0x4e: rgbMix(DB32EGAColors.Palette[0x3], DB32EGAColors.Palette[0xd], 1.75/3.0),
+		0x4f: rgbMix(rgb24Color{0x5b6ee1}, DB32EGAColors.Palette[0xb], 2.25/3.0),
 	},
 	Unditherer: Unditherer{
 		0x01: {0x10, 0x10}, 0x10: {0x10, 0x10},
@@ -248,6 +248,48 @@ func CreateFullUnditherer(pal color.Palette) (*Colors) {
 		}
 	}
 	return &Colors{newPal, undith}
+}
+
+
+func CreateAdaptiveDithering(in color.Palette, lower, upper float64) *Colors {
+	pal := make([]color.Color, 16, 256)
+	copy(pal, in)
+	undither := Unditherer{}
+	for c1 := 0; c1 < 16; c1++ {
+		for c2 := c1 + 1; c2 < 16; c2++ {
+			r1, g1, b1, _ := pal[c1].RGBA()
+			r2, g2, b2, _ := pal[c2].RGBA()
+
+			lum1 := (299*r1 + 587*g1 + 114*b1) / 1000
+			lum2 := (299*r2 + 587*g2 + 114*b2) / 1000
+			var dLum uint32
+			if lum1 > lum2 {
+				dLum = lum1-lum2
+			} else {
+				dLum = lum2-lum1
+			}
+
+			if dLum >= uint32(0xffff * upper) {
+				m1 := rgbMix(pal[c1], pal[c2], 1.0/3.0)
+				m2 := rgbMix(pal[c1], pal[c2], 2.0/3.0)
+				idx := uint8(len(pal))
+				pal = append(pal, m1)
+				pal = append(pal, m2)
+				undither[uint8(c1 << 4 | c2)] = struct{ c1, c2 uint8 }{idx, idx + 1}
+				undither[uint8(c2 << 4 | c1)] = struct{ c1, c2 uint8 }{idx + 1, idx}
+			} else if dLum >= uint32(0xffff * lower) {
+				m1 := rgbMix(pal[c1], pal[c2], 0.5)
+				idx := uint8(len(pal))
+				pal = append(pal, m1)
+				undither[uint8(c1 << 4 | c2)] = struct{ c1, c2 uint8 }{idx, idx}
+			}
+		}
+	}
+
+	return &Colors{
+		Palette:    pal,
+		Unditherer: undither,
+	}
 }
 
 var DepthPalette = []color.Color{
