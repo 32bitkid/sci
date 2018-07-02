@@ -199,6 +199,7 @@ type picState struct {
 	unditherer Unditherer
 
 	debugFn func(*picState, ...interface{})
+	fillStack []point
 }
 
 func (s *picState) debugger(params ...interface{}) {
@@ -215,20 +216,20 @@ func (s *picState) fill(cx, cy int) {
 			return
 		}
 		c1, c2 := s.unditherer.color(s.color)
-		fill(cx, cy, 0xf, s.visual, c1, c2, dither5050)
+		fill(cx, cy, 0xf, s.visual, c1, c2, dither5050, s.fillStack)
 		s.debugger()
 	case s.drawMode.Has(picDrawPriority):
 		if s.priorityCode == 0 {
 			return
 		}
 		c := s.priorityCode
-		fill(cx, cy, 0x0, s.priority, c, c, noDither)
+		fill(cx, cy, 0x0, s.priority, c, c, noDither, s.fillStack)
 	case s.drawMode.Has(picDrawControl):
 		if s.controlCode == 0 {
 			return
 		}
 		c := s.controlCode
-		fill(cx, cy, 0x0, s.control, c, c, noDither)
+		fill(cx, cy, 0x0, s.control, c, c, noDither, s.fillStack)
 	default:
 		return
 	}
@@ -319,6 +320,7 @@ func ReadPic(
 		},
 		unditherer: unditherer,
 		debugFn:    debugFn,
+		fillStack:  make([]point, 0, 320*190),
 	}
 
 	for i := 0; i < (320 * 190); i++ {
@@ -617,10 +619,9 @@ func (p point) isLegal(dst *image.Paletted, legalColor uint8) bool {
 	return dst.Pix[idx] == legalColor
 }
 
-func fill(cx, cy int, legalColor uint8, dst *image.Paletted, c1, c2 uint8, dither ditherFn) {
+func fill(cx, cy int, legalColor uint8, dst *image.Paletted, c1, c2 uint8, dither ditherFn, stack []point) {
 	var (
 		p      point
-		stack  []point
 		stride = dst.Stride
 	)
 
