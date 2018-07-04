@@ -599,6 +599,16 @@ opLoop:
 				// not sure what this byte is for...
 				r.bits.Skip(8)
 			case pOpxCode(0x04), pOpxCode(0x06):
+			case pOpxCode(0x08):
+				// TODO not sure what this is for (KQ1-sci0 remake uses this opcode)
+				for {
+					if peek, err := r.bits.Peek8(8); err != nil {
+						return nil, err
+					} else if peek >= 0xf0 {
+						break
+					}
+					r.bits.Skip(8)
+				}
 			default:
 				return nil, fmt.Errorf("unhandled opx 0x%02x", opx)
 			}
