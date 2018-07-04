@@ -151,6 +151,7 @@ var ExtendedColors = &Colors{
 		0x1e: rgb24Color{0xeec39a}, // pancho
 		0x1f: rgb24Color{0x696a6a}, // dim-gray
 
+		// Mixes
 		0x20: rgbMix(DB32EGAColors.Palette[0xc], DB32EGAColors.Palette[0xe], 1.0/3.0),
 		0x21: rgbMix(DB32EGAColors.Palette[0xc], DB32EGAColors.Palette[0xe], 2.0/3.0),
 		0x22: rgbMix(DB32EGAColors.Palette[0xe], DB32EGAColors.Palette[0xf], 0.5),
@@ -181,7 +182,7 @@ var ExtendedColors = &Colors{
 		0x3a: rgbMix(rgb24Color{0xeec39a}, DB32EGAColors.Palette[0xe], 1.5/3.0),
 		0x3b: rgbMix(DB32EGAColors.Palette[0x8], rgb24Color{0x524b24}, 1.5/3.0),
 		0x3c: rgbMix(DB32EGAColors.Palette[0x0], DB32EGAColors.Palette[0xa], 1.0/3.0),
-		0x3d: color.Black,
+		0x3d: rgbMix(DB32EGAColors.Palette[0x5], DB32EGAColors.Palette[0x9], 2.0/3.0),
 		0x3e: rgbMix(DB32EGAColors.Palette[0x8], DB32EGAColors.Palette[0xa], 1.25/3.0),
 		0x3f: rgbMix(DB32EGAColors.Palette[0x8], DB32EGAColors.Palette[0xa], 1.75/3.0),
 
@@ -252,6 +253,7 @@ var ExtendedColors = &Colors{
 		0xde: {0x1e, 0x0c}, 0xed: {0x0c, 0x1e},
 		0xef: {0x22, 0x22}, 0xfe: {0x22, 0x22},
 		0x3f: {0x17, 0x17}, 0xf3: {0x17, 0x17},
+		0x59: {0x3d, 0x3d}, 0x95: {0x3d, 0x3d},
 	},
 }
 
@@ -271,7 +273,6 @@ func CreateFullUnditherer(pal color.Palette) (*Colors) {
 	return &Colors{newPal, undith}
 }
 
-
 func CreateAdaptiveDithering(in color.Palette, lower, upper float64) *Colors {
 	pal := make([]color.Color, 16, 256)
 	copy(pal, in)
@@ -285,24 +286,24 @@ func CreateAdaptiveDithering(in color.Palette, lower, upper float64) *Colors {
 			lum2 := (299*r2 + 587*g2 + 114*b2) / 1000
 			var dLum uint32
 			if lum1 > lum2 {
-				dLum = lum1-lum2
+				dLum = lum1 - lum2
 			} else {
-				dLum = lum2-lum1
+				dLum = lum2 - lum1
 			}
 
-			if dLum >= uint32(0xffff * upper) {
+			if dLum >= uint32(0xffff*upper) {
 				m1 := rgbMix(pal[c1], pal[c2], 1.0/3.0)
 				m2 := rgbMix(pal[c1], pal[c2], 2.0/3.0)
 				idx := uint8(len(pal))
 				pal = append(pal, m1)
 				pal = append(pal, m2)
-				undither[uint8(c1 << 4 | c2)] = struct{ c1, c2 uint8 }{idx, idx + 1}
-				undither[uint8(c2 << 4 | c1)] = struct{ c1, c2 uint8 }{idx + 1, idx}
-			} else if dLum >= uint32(0xffff * lower) {
+				undither[uint8(c1<<4|c2)] = struct{ c1, c2 uint8 }{idx, idx + 1}
+				undither[uint8(c2<<4|c1)] = struct{ c1, c2 uint8 }{idx + 1, idx}
+			} else if dLum >= uint32(0xffff*lower) {
 				m1 := rgbMix(pal[c1], pal[c2], 0.5)
 				idx := uint8(len(pal))
 				pal = append(pal, m1)
-				undither[uint8(c1 << 4 | c2)] = struct{ c1, c2 uint8 }{idx, idx}
+				undither[uint8(c1<<4|c2)] = struct{ c1, c2 uint8 }{idx, idx}
 			}
 		}
 	}
