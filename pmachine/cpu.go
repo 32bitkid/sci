@@ -32,7 +32,7 @@ const (
 type op uint8
 
 const (
-	opNOT  op = iota
+	opNOT op = iota
 	opADD
 	opSUB
 	opMUL
@@ -126,7 +126,7 @@ func (sci *SCI) ExecuteStep() {
 	sci.IP += 1
 	op := op(code >> 1)
 	if fn := opHandlers[op]; fn != nil {
-		size := code & 0x1 == 0x1
+		size := code&0x1 == 0x1
 		fn(sci, size)
 	} else {
 		panic(fmt.Sprintf("op %x not supported", code))
