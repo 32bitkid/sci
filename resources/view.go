@@ -10,17 +10,17 @@ import (
 	"github.com/32bitkid/sci/screen"
 )
 
-type Group struct {
-	Sprites []Sprite
-}
+type View []SpriteGroup
 
-func (g Group) GIF(palette *screen.Ditherer) *gif.GIF {
+type SpriteGroup []Sprite
+
+func (g SpriteGroup) GIF(palette *screen.Ditherer) *gif.GIF {
 	var images []*image.Paletted
 	var delays []int
 	var dispose []byte
 
 	rect := image.Rectangle{}
-	for _, s := range g.Sprites {
+	for _, s := range g {
 		if rect.Min.X > int(s.X) {
 			rect.Min.X = int(s.X)
 		}
@@ -40,14 +40,14 @@ func (g Group) GIF(palette *screen.Ditherer) *gif.GIF {
 	offset := rect.Min
 	rect = rect.Sub(rect.Min)
 
-	for _, s := range g.Sprites {
+	for _, s := range g {
 		srcRect := image.Rect(
 			0, 0,
 			int(s.Width), int(s.Height),
 		)
 
 		source := &image.Paletted{
-			Pix:     s.Bitmap,
+			Pix:     s.Pixels,
 			Stride:  int(s.Width),
 			Rect:    srcRect,
 			Palette: palette.Palette,
@@ -55,7 +55,7 @@ func (g Group) GIF(palette *screen.Ditherer) *gif.GIF {
 
 		mask := image.NewAlpha(srcRect)
 		for i := range mask.Pix {
-			if s.Bitmap[i] != s.KeyColor {
+			if s.Pixels[i] != s.KeyColor {
 				mask.Pix[i] = 0xff
 			}
 		}
@@ -102,11 +102,11 @@ type SpriteDetails struct {
 }
 
 type Sprite struct {
-	Bitmap []uint8
+	Pixels []uint8
 	SpriteDetails
 }
 
-func ReadView(res *Resource) ([]Group, error) {
+func ReadView(res *Resource) (View, error) {
 	// TODO type check
 	r := bytes.NewReader(res.bytes)
 	var header struct {
@@ -119,7 +119,7 @@ func ReadView(res *Resource) ([]Group, error) {
 		return nil, err
 	}
 
-	groups := make([]Group, 0, header.Groups)
+	view := make(View, 0, header.Groups)
 
 	groupPointers := make([]uint16, header.Groups)
 	if err := binary.Read(r, binary.LittleEndian, &groupPointers); err != nil {
@@ -142,7 +142,7 @@ func ReadView(res *Resource) ([]Group, error) {
 
 		mirrored := header.Mirrored&(1<<uint(g)) == (1 << uint(g))
 
-		group := Group{}
+		group := SpriteGroup{}
 
 		spritePointers := make([]uint16, groupHeader.Images)
 		if err := binary.Read(r, binary.LittleEndian, &spritePointers); err != nil {
@@ -188,11 +188,11 @@ func ReadView(res *Resource) ([]Group, error) {
 				}
 			}
 
-			sprite.Bitmap = bitmap
-			group.Sprites = append(group.Sprites, sprite)
+			sprite.Pixels = bitmap
+			group = append(group, sprite)
 		}
-		groups = append(groups, group)
+		view = append(view, group)
 	}
 
-	return groups, nil
+	return view, nil
 }
