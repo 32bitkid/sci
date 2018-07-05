@@ -48,7 +48,7 @@ func (t RType) String() string {
 	case TypePatch:
 		return "Type(Patch)"
 	}
-	return "Type(Invalid)"
+	return "Type(INVALID)"
 }
 
 type RNumber uint16

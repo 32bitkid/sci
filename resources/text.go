@@ -6,8 +6,10 @@ import (
 	"io"
 )
 
-func ReadText(resource *Resource) ([]string, error) {
-	var text []string
+type Text []string
+
+func ReadText(resource *Resource) (Text, error) {
+	var text Text
 
 	reader := bufio.NewReader(bytes.NewReader(resource.bytes))
 	for {

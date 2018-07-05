@@ -8,15 +8,15 @@ import (
 )
 
 type Font struct {
-	Characters uint16
+	Count      uint16
 	LineHeight uint16
-	Bitmaps    []Character
+	Characters []Character
 }
 
 type Character struct {
-	Width  uint8
-	Height uint8
-	bitmap []byte
+	Width   uint8
+	Height  uint8
+	Bitmaps []byte
 }
 
 func (c Character) String() string {
@@ -25,7 +25,7 @@ func (c Character) String() string {
 	for y := 0; y < int(c.Height); y++ {
 		line := ""
 		for x := 0; x < int(bpr); x++ {
-			d := c.bitmap[y*bpr+x]
+			d := c.Bitmaps[y*bpr+x]
 			line += fmt.Sprintf("%08b", d)
 		}
 		result += line[0:c.Width] + "\n"
@@ -53,9 +53,9 @@ func ReadFont(res *Resource) (*Font, error) {
 	}
 
 	font := Font{
-		Characters: h.Characters,
+		Count:      h.Characters,
 		LineHeight: h.LineHeight,
-		Bitmaps:    make([]Character, int(h.Characters)),
+		Characters: make([]Character, int(h.Characters)),
 	}
 
 	pointers := make([]uint16, h.Characters)
@@ -79,10 +79,10 @@ func ReadFont(res *Resource) (*Font, error) {
 			return nil, err
 		}
 
-		font.Bitmaps[i] = Character{
-			Width:  ch.Width,
-			Height: ch.Height,
-			bitmap: bitmap,
+		font.Characters[i] = Character{
+			Width:   ch.Width,
+			Height:  ch.Height,
+			Bitmaps: bitmap,
 		}
 	}
 

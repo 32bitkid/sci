@@ -5,13 +5,13 @@ import (
 	"encoding/binary"
 )
 
-type Point struct {
+type HotSpot struct {
 	X int16
 	Y int16
 }
 
 type Cursor struct {
-	Point
+	HotSpot
 	Transparency [16]uint16
 	Color        [16]uint16
 }

@@ -17,10 +17,6 @@ type huffmanState struct {
 	br    bitreader.BitReader8
 }
 
-func (h *huffmanState) Next() (uint8, bool, error) {
-	return h.next(0)
-}
-
 func (h *huffmanState) next(idx int) (uint8, bool, error) {
 	node := h.nodes[idx]
 	value := node.Value
@@ -71,7 +67,7 @@ func huffman(src *bufio.Reader, dest []uint8) error {
 
 	i := 0
 	for {
-		c, ok, err := huffman.Next()
+		c, ok, err := huffman.next(0)
 		if err != nil {
 			return err
 		}
