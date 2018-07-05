@@ -6,13 +6,15 @@ import (
 	"image"
 	"image/draw"
 	"image/gif"
+
+	"github.com/32bitkid/sci/screen"
 )
 
 type Group struct {
 	Sprites []Sprite
 }
 
-func (g Group) GIF(palette *Colors) *gif.GIF {
+func (g Group) GIF(palette *screen.Ditherer) *gif.GIF {
 	var images []*image.Paletted
 	var delays []int
 	var dispose []byte

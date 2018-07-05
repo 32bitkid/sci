@@ -1,44 +1,9 @@
-package image
+package screen
 
 import (
-	"image/color"
 	"image"
+	"image/color"
 )
-
-func lerpUI32(v0, v1 uint32, t float64) uint32 {
-	return uint32(float64(v0)*(1-t) + float64(v1)*t)
-}
-
-func rgbMix(c1, c2 color.Color, t float64) color.Color {
-	r1, g1, b1, _ := c1.RGBA()
-	r2, g2, b2, _ := c2.RGBA()
-	return color.RGBA{
-		R: uint8(lerpUI32(r1, r2, t) >> 8),
-		G: uint8(lerpUI32(g1, g2, t) >> 8),
-		B: uint8(lerpUI32(b1, b2, t) >> 8),
-		A: 0xff,
-	}
-}
-
-func darken(c color.Color, p float64) color.Color {
-	r, g, b, _ := c.RGBA()
-	return color.RGBA{
-		R: uint8(uint32(float64(r)*(1-p)) >> 8),
-		G: uint8(uint32(float64(g)*(1-p)) >> 8),
-		B: uint8(uint32(float64(b)*(1-p)) >> 8),
-		A: 255,
-	}
-}
-
-func clamp(i int, min int, max int) int {
-	if i < min {
-		return min
-	}
-	if i > max {
-		return max
-	}
-	return i
-}
 
 var (
 	red   = color.RGBA{R: 0xFF, G: 0x99, B: 0x99, A: 0xff}
@@ -57,7 +22,7 @@ func rgbMul(a, b color.Color, _ float64) color.Color {
 	}
 }
 
-func RenderToCRT(src image.Image) (image.Image) {
+func RenderToCRT(src image.Image) image.Image {
 	srcRect := src.Bounds()
 	dst := image.NewRGBA(image.Rect(0, 0, srcRect.Dx()*6, srcRect.Dy()*6))
 	for sy, dy := srcRect.Min.Y, 0; sy < srcRect.Max.Y; sy, dy = sy+1, dy+6 {

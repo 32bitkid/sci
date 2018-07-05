@@ -5,9 +5,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/32bitkid/bitreader"
 	"image"
 	"math/rand"
+
+	"github.com/32bitkid/bitreader"
+	"github.com/32bitkid/sci/screen"
 )
 
 type ditherFn func(x, y int, c1, c2 uint8) uint8
@@ -196,9 +198,9 @@ type picState struct {
 	control  *image.Paletted
 	aux      *image.Paletted
 
-	unditherer Unditherer
+	ditherer *screen.Ditherer
 
-	debugFn func(*picState, ...interface{})
+	debugFn   func(*picState, ...interface{})
 	fillStack []point
 }
 
@@ -215,7 +217,7 @@ func (s *picState) fill(cx, cy int) {
 		if s.color == 255 {
 			return
 		}
-		c1, c2 := s.unditherer.color(s.color)
+		c1, c2 := s.ditherer.Get(s.color)
 		fill(cx, cy, 0xf, s.visual, c1, c2, dither5050, s.fillStack)
 		s.debugger()
 	case s.drawMode.Has(picDrawPriority):
@@ -237,7 +239,7 @@ func (s *picState) fill(cx, cy int) {
 
 func (s *picState) line(x1, y1, x2, y2 int) {
 	if s.drawMode.Has(picDrawVisual) {
-		c1, c2 := s.unditherer.color(s.color)
+		c1, c2 := s.ditherer.Get(s.color)
 		line(x1, y1, x2, y2, s.visual, c1, c2, dither5050)
 		s.debugger()
 	}
@@ -257,7 +259,7 @@ func (s *picState) drawPattern(cx, cy int) {
 	solid := s.patternCode&0x20 == 0
 
 	if s.drawMode.Has(picDrawVisual) {
-		c1, c2 := s.unditherer.color(s.color)
+		c1, c2 := s.ditherer.Get(s.color)
 		drawPattern(cx, cy, size, isRect, solid, s.visual, c1, c2, dither5050)
 		s.debugger()
 	}
@@ -272,7 +274,7 @@ func (s *picState) drawPattern(cx, cy int) {
 }
 
 type PicOptions struct {
-	*Colors
+	*screen.Ditherer
 	DebugFn func(*picState, ...interface{})
 }
 
@@ -285,20 +287,14 @@ func ReadPic(
 	}
 
 	var debugFn func(*picState, ...interface{})
-	palette := RetroEGAColors.Palette
-	unditherer := RetroEGAColors.Unditherer
-
+	ditherer := screen.EGADitherer
 	for _, opts := range options {
 		if opts == nil {
 			continue
 		}
 
-		if opts.Colors != nil && opts.Palette != nil {
-			palette = opts.Palette
-		}
-
-		if opts.Colors != nil && opts.Unditherer != nil {
-			unditherer = opts.Unditherer
+		if opts.Ditherer != nil {
+			ditherer = opts.Ditherer
 		}
 
 		if opts.DebugFn != nil {
@@ -307,10 +303,10 @@ func ReadPic(
 	}
 
 	var state = picState{
-		visual:   image.NewPaletted(image.Rect(0, 0, 320, 190), palette),
-		priority: image.NewPaletted(image.Rect(0, 0, 320, 190), Depth16Palette),
-		control:  image.NewPaletted(image.Rect(0, 0, 320, 190), Depth16Palette),
-		aux:      image.NewPaletted(image.Rect(0, 0, 320, 190), Depth16Palette),
+		visual:   image.NewPaletted(image.Rect(0, 0, 320, 190), ditherer.Palette),
+		priority: image.NewPaletted(image.Rect(0, 0, 320, 190), screen.Depth16Palette),
+		control:  image.NewPaletted(image.Rect(0, 0, 320, 190), screen.EGAPalette),
+		aux:      image.NewPaletted(image.Rect(0, 0, 320, 190), screen.Depth16Palette),
 		drawMode: picDrawVisual | picDrawPriority,
 		palettes: [...]picPalette{
 			defaultPalette,
@@ -318,9 +314,9 @@ func ReadPic(
 			defaultPalette,
 			defaultPalette,
 		},
-		unditherer: unditherer,
-		debugFn:    debugFn,
-		fillStack:  make([]point, 0, 320*190),
+		ditherer:  ditherer,
+		debugFn:   debugFn,
+		fillStack: make([]point, 0, 320*190),
 	}
 
 	for i := 0; i < (320 * 190); i++ {

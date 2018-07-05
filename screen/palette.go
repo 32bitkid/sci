@@ -1,48 +1,24 @@
-package resources
+package screen
 
 import (
 	"image/color"
 )
 
-type rgb24Color struct {
-	RGB uint32
-}
-
-func (ega rgb24Color) RGBA() (r, g, b, a uint32) {
-	rb := uint32(ega.RGB >> 16 & 0xFF)
-	gb := uint32(ega.RGB >> 8 & 0xFF)
-	bb := uint32(ega.RGB >> 0 & 0xFF)
-
-	r = rb<<8 | rb
-	g = gb<<8 | gb
-	b = bb<<8 | bb
-	a = 0xFFFF
-	return
-}
-
-func lerpUI32(v0, v1 uint32, t float64) uint32 {
-	return uint32(float64(v0)*(1-t) + float64(v1)*t)
-}
-
-func rgbMix(c1, c2 color.Color, t float64) color.Color {
-	r1, g1, b1, _ := c1.RGBA()
-	r2, g2, b2, _ := c2.RGBA()
-	return color.RGBA{
-		R: uint8(lerpUI32(r1, r2, t) >> 8),
-		G: uint8(lerpUI32(g1, g2, t) >> 8),
-		B: uint8(lerpUI32(b1, b2, t) >> 8),
-		A: 0xff,
-	}
-}
-
-type Colors struct {
+type Ditherer struct {
 	color.Palette
-	Unditherer
+	ColorMapping
 }
 
-type Unditherer map[uint8]struct{ c1, c2 uint8 }
+func (d *Ditherer) Get(c uint8) (uint8, uint8) {
+	if d == nil {
+		return c & 0xF, c >> 4
+	}
+	return d.ColorMapping.Get(c)
+}
 
-func (u Unditherer) color(c uint8) (uint8, uint8) {
+type ColorMapping map[uint8]struct{ c1, c2 uint8 }
+
+func (u ColorMapping) Get(c uint8) (uint8, uint8) {
 	if e, ok := u[c]; ok {
 		return e.c1, e.c2
 	}
@@ -69,51 +45,55 @@ var Depth16Palette = color.Palette{
 	color.Gray{0xFF},
 }
 
-var RetroEGAColors = &Colors{
-	Palette: color.Palette{
-		rgb24Color{0x000000},
-		rgb24Color{0x0000AA},
-		rgb24Color{0x00AA00},
-		rgb24Color{0x00AAAA},
-		rgb24Color{0xAA0000},
-		rgb24Color{0xAA00AA},
-		rgb24Color{0xAA5500},
-		rgb24Color{0xAAAAAA},
+var EGAPalette = color.Palette{
+	rgb24Color{0x000000},
+	rgb24Color{0x0000AA},
+	rgb24Color{0x00AA00},
+	rgb24Color{0x00AAAA},
+	rgb24Color{0xAA0000},
+	rgb24Color{0xAA00AA},
+	rgb24Color{0xAA5500},
+	rgb24Color{0xAAAAAA},
 
-		rgb24Color{0x555555},
-		rgb24Color{0x5555FF},
-		rgb24Color{0x55FF55},
-		rgb24Color{0x55FFFF},
-		rgb24Color{0xFF5555},
-		rgb24Color{0xFF55FF},
-		rgb24Color{0xFFFF55},
-		rgb24Color{0xFFFFFF},
-	},
+	rgb24Color{0x555555},
+	rgb24Color{0x5555FF},
+	rgb24Color{0x55FF55},
+	rgb24Color{0x55FFFF},
+	rgb24Color{0xFF5555},
+	rgb24Color{0xFF55FF},
+	rgb24Color{0xFFFF55},
+	rgb24Color{0xFFFFFF},
 }
 
-var DB32EGAColors = &Colors{
-	Palette: color.Palette{
-		rgb24Color{0x000000},
-		rgb24Color{0x3f3f74},
-		rgb24Color{0x4b692f},
-		rgb24Color{0x306082},
-		rgb24Color{0xac3232},
-		rgb24Color{0x45283c},
-		rgb24Color{0x8f563b},
-		rgb24Color{0x847e87},
+var DB32EGAPalette = color.Palette{
+	rgb24Color{0x000000},
+	rgb24Color{0x3f3f74},
+	rgb24Color{0x4b692f},
+	rgb24Color{0x306082},
+	rgb24Color{0xac3232},
+	rgb24Color{0x45283c},
+	rgb24Color{0x8f563b},
+	rgb24Color{0x847e87},
 
-		rgb24Color{0x323c39},
-		rgb24Color{0x639bff},
-		rgb24Color{0x6abe30},
-		rgb24Color{0x5fcde4},
-		rgb24Color{0xd95763},
-		rgb24Color{0xd77bba},
-		rgb24Color{0xfbf236},
-		rgb24Color{0xffffff},
-	},
+	rgb24Color{0x323c39},
+	rgb24Color{0x639bff},
+	rgb24Color{0x6abe30},
+	rgb24Color{0x5fcde4},
+	rgb24Color{0xd95763},
+	rgb24Color{0xd77bba},
+	rgb24Color{0xfbf236},
+	rgb24Color{0xffffff},
 }
 
-var ExtendedColors = &Colors{
+var EGADitherer = &Ditherer{
+	Palette: EGAPalette,
+}
+
+var DB32EGAColors = &Ditherer{
+	Palette: DB32EGAPalette,
+}
+
+var ExtendedDitherer = &Ditherer{
 	Palette: color.Palette{
 		0x00: rgb24Color{0x000000}, // black
 		0x01: rgb24Color{0x3f3f74}, // deep-koamaru
@@ -203,7 +183,7 @@ var ExtendedColors = &Colors{
 		0x4e: rgbMix(DB32EGAColors.Palette[0x3], DB32EGAColors.Palette[0xd], 1.75/3.0),
 		0x4f: rgbMix(rgb24Color{0x5b6ee1}, DB32EGAColors.Palette[0xb], 2.25/3.0),
 	},
-	Unditherer: Unditherer{
+	ColorMapping: ColorMapping{
 		0x01: {0x10, 0x10}, 0x10: {0x10, 0x10},
 		0x02: {0x3c, 0x24}, 0x20: {0x24, 0x3c},
 		0x03: {0x12, 0x12}, 0x30: {0x12, 0x12},
@@ -257,26 +237,26 @@ var ExtendedColors = &Colors{
 	},
 }
 
-func CreateFullUnditherer(pal color.Palette) (*Colors) {
+func NewUnditherer(pal color.Palette) *Ditherer {
 	newPal := make(color.Palette, len(pal), 256)
-	undith := Unditherer{}
+	mapping := ColorMapping{}
 	copy(newPal, pal)
 	for a := uint8(0); a < 0x10; a++ {
 		for b := a + 1; b < 0x10; b++ {
 			idx := uint8(len(newPal))
 			newPal = append(newPal, rgbMix(pal[a], pal[b], 0.5))
 			entry := struct{ c1, c2 uint8 }{idx, idx}
-			undith[a<<4|b] = entry
-			undith[b<<4|a] = entry
+			mapping[a<<4|b] = entry
+			mapping[b<<4|a] = entry
 		}
 	}
-	return &Colors{newPal, undith}
+	return &Ditherer{newPal, mapping}
 }
 
-func CreateAdaptiveDithering(in color.Palette, lower, upper float64) *Colors {
+func NewAdaptiveDithering(in color.Palette, lower, upper float64) *Ditherer {
 	pal := make([]color.Color, 16, 256)
 	copy(pal, in)
-	undither := Unditherer{}
+	mapping := ColorMapping{}
 	for c1 := 0; c1 < 16; c1++ {
 		for c2 := c1 + 1; c2 < 16; c2++ {
 			r1, g1, b1, _ := pal[c1].RGBA()
@@ -297,19 +277,19 @@ func CreateAdaptiveDithering(in color.Palette, lower, upper float64) *Colors {
 				idx := uint8(len(pal))
 				pal = append(pal, m1)
 				pal = append(pal, m2)
-				undither[uint8(c1<<4|c2)] = struct{ c1, c2 uint8 }{idx, idx + 1}
-				undither[uint8(c2<<4|c1)] = struct{ c1, c2 uint8 }{idx + 1, idx}
+				mapping[uint8(c1<<4|c2)] = struct{ c1, c2 uint8 }{idx, idx + 1}
+				mapping[uint8(c2<<4|c1)] = struct{ c1, c2 uint8 }{idx + 1, idx}
 			} else if dLum >= uint32(0xffff*lower) {
 				m1 := rgbMix(pal[c1], pal[c2], 0.5)
 				idx := uint8(len(pal))
 				pal = append(pal, m1)
-				undither[uint8(c1<<4|c2)] = struct{ c1, c2 uint8 }{idx, idx}
+				mapping[uint8(c1<<4|c2)] = struct{ c1, c2 uint8 }{idx, idx}
 			}
 		}
 	}
 
-	return &Colors{
-		Palette:    pal,
-		Unditherer: undither,
+	return &Ditherer{
+		Palette:      pal,
+		ColorMapping: mapping,
 	}
 }
