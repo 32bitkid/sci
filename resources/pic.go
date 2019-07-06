@@ -596,7 +596,7 @@ opLoop:
 				r.bits.Skip(8)
 			case pOpxCode(0x04), pOpxCode(0x06):
 			case pOpxCode(0x08):
-				// TODO not sure what this is for (KQ1-sci0 remake uses this opcode)
+				// TODO not sure what this is for (KQ1-sci0 remake uses this op-code)
 				for {
 					if peek, err := r.bits.Peek8(8); err != nil {
 						return nil, err
