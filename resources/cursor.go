@@ -32,6 +32,7 @@ func (c Cursor) String() string {
 		default:
 			str += "\u2591"
 		}
+
 		if x == 15 {
 			str += "\n"
 		}
