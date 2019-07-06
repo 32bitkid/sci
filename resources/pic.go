@@ -281,7 +281,7 @@ type PicOptions struct {
 func ReadPic(
 	resource *Resource,
 	options ...*PicOptions,
-) (image.Image, error) {
+) (*image.Paletted, error) {
 	r := picReader{
 		bitreader.NewReader(bufio.NewReader(bytes.NewReader(resource.bytes))),
 	}
