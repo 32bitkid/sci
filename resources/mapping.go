@@ -6,8 +6,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"os"
-	"path"
 )
 
 type RType uint8
@@ -62,6 +60,61 @@ type Mapping struct {
 	Offset ROffset
 }
 
+func (m *Mapping) GetResourceFile() string {
+	return fmt.Sprintf("RESOURCE.%03d", m.File)
+}
+
+
+func (m Mapping) LoadFrom(file io.ReadSeeker) (*Resource, error) {
+	src := bufio.NewReader(file)
+
+	if _, err := file.Seek(int64(m.Offset), io.SeekStart); err != nil {
+		return nil, err
+	}
+
+	var header Header
+	err := binary.Read(src, binary.LittleEndian, &header)
+	if err != nil {
+		return nil, err
+	}
+
+	switch header.CompressionMethod {
+	case CompressionNone:
+		buffer := make([]uint8, header.DecompressedSize)
+		if _, err := io.ReadFull(src, buffer); err != nil {
+			return nil, err
+		}
+		return &Resource{
+			m,
+			header,
+			buffer,
+		}, nil
+	case CompressionLZW:
+		buffer := make([]uint8, header.DecompressedSize)
+		r := lzw.NewReader(src, lzw.LSB, 8)
+		if _, err := io.ReadFull(r, buffer); err != nil {
+			return nil, err
+		}
+		return &Resource{
+			m,
+			header,
+			buffer,
+		}, nil
+	case CompressionHuffman:
+		buffer := make([]uint8, header.DecompressedSize)
+		if err := huffman(src, buffer); err != nil {
+			return nil, err
+		}
+		return &Resource{
+			m,
+			header,
+			buffer,
+		}, nil
+	}
+
+	return nil, fmt.Errorf("cannot read goo %d", header.CompressionMethod)
+}
+
 type CompressionMethod uint16
 
 const (
@@ -83,72 +136,10 @@ type Resource struct {
 	bytes   []uint8
 }
 
-func (res Mapping) Load(root string) (*Resource, error) {
-	filename := path.Join(root, fmt.Sprintf("RESOURCE.%03d", res.File))
-	file, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
+const idEndToken uint16 = (1 << 16) - 1
+const tailEndToken uint32 = (1 << 32) - 1
 
-	defer file.Close()
-
-	src := bufio.NewReader(file)
-
-	if _, err := file.Seek(int64(res.Offset), 0); err != nil {
-		return nil, err
-	}
-
-	var header Header
-	binary.Read(src, binary.LittleEndian, &header)
-
-	switch header.CompressionMethod {
-	case CompressionNone:
-		buffer := make([]uint8, header.DecompressedSize)
-		if _, err := io.ReadFull(src, buffer); err != nil {
-			return nil, err
-		}
-		return &Resource{
-			res,
-			header,
-			buffer,
-		}, nil
-	case CompressionLZW:
-		buffer := make([]uint8, header.DecompressedSize)
-		r := lzw.NewReader(src, lzw.LSB, 8)
-		defer r.Close()
-		if _, err := io.ReadFull(r, buffer); err != nil {
-			return nil, err
-		}
-		return &Resource{
-			res,
-			header,
-			buffer,
-		}, nil
-	case CompressionHuffman:
-		buffer := make([]uint8, header.DecompressedSize)
-		if err := huffman(src, buffer); err != nil {
-			return nil, err
-		}
-		return &Resource{
-			res,
-			header,
-			buffer,
-		}, nil
-	}
-
-	return nil, fmt.Errorf("cannot read goo %d", header.CompressionMethod)
-}
-
-func ParseSCI0(root string) ([]Mapping, error) {
-	const idEndToken uint16 = (1 << 16) - 1
-	const tailEndToken uint32 = (1 << 32) - 1
-
-	r, err := os.Open(path.Join(root, "RESOURCE.MAP"))
-	defer r.Close()
-	if err != nil {
-		return nil, err
-	}
-
+func ParseResourceMap(r io.Reader) ([]Mapping, error) {
 	var resources []Mapping
 	for {
 		var id uint16
