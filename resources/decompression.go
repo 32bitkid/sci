@@ -58,7 +58,9 @@ func huffman(src *bufio.Reader, dest []uint8) error {
 	}
 
 	nodes := make([]huffmanNodes, nodeCount)
-	binary.Read(src, binary.LittleEndian, &nodes)
+	if err := binary.Read(src, binary.LittleEndian, &nodes); err != nil {
+		return err
+	}
 
 	huffman := huffmanState{
 		br:    bitreader.NewReader(src),
