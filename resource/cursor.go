@@ -1,9 +1,15 @@
-package resources
+package resource
 
 import (
 	"bytes"
 	"encoding/binary"
 )
+
+func NewCursor() (b []byte, cursor Cursor, err error) {
+	reader := bytes.NewReader(b)
+	err = binary.Read(reader, binary.LittleEndian, &cursor)
+	return
+}
 
 type HotSpot struct {
 	X int16
@@ -38,10 +44,4 @@ func (c Cursor) String() string {
 		}
 	}
 	return str
-}
-
-func ReadCursor(res *Resource) (cursor Cursor, err error) {
-	reader := bytes.NewReader(res.bytes)
-	err = binary.Read(reader, binary.LittleEndian, &cursor)
-	return
 }

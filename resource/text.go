@@ -1,4 +1,4 @@
-package resources
+package resource
 
 import (
 	"bufio"
@@ -8,10 +8,10 @@ import (
 
 type Text []string
 
-func ReadText(resource *Resource) (Text, error) {
+func NewText(b []byte) (Text, error) {
 	var text Text
 
-	reader := bufio.NewReader(bytes.NewReader(resource.bytes))
+	reader := bufio.NewReader(bytes.NewReader(b))
 	for {
 		if str, err := reader.ReadString(0x00); err == io.EOF {
 			break

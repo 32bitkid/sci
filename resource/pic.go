@@ -1,4 +1,4 @@
-package resources
+package resource
 
 import (
 	"bufio"
@@ -11,6 +11,29 @@ import (
 	"github.com/32bitkid/bitreader"
 	"github.com/32bitkid/sci/screen"
 )
+
+func NewPic(b []byte, options ...PicOptions) (*image.Paletted, error) {
+	var debugFn DebugCallback
+	ditherer := screen.EGADitherer
+	for _, opts := range options {
+		if opts.Ditherer != nil {
+			ditherer = opts.Ditherer
+		}
+
+		if opts.DebugFn != nil {
+			debugFn = opts.DebugFn
+		}
+	}
+
+	return readPic(b, ditherer, debugFn)
+}
+
+type PicOptions struct {
+	*screen.Ditherer
+	DebugFn DebugCallback
+}
+
+type DebugCallback func(*PicState, ...interface{})
 
 type ditherFn func(x, y int, c1, c2 uint8) uint8
 
@@ -46,7 +69,7 @@ func (p picReader) getAbsCoords() (int, int, error) {
 }
 
 // getRelCoords2 reads a medium length delta from the bit-stream.
-// The total payload is 16-bits long:
+// The total PayloadBytes is 16-bits long:
 //
 // bits |
 // 0-7  | y-delta
@@ -81,7 +104,7 @@ func (p picReader) getRelCoords2(x1, y1 int) (int, int, error) {
 }
 
 // getRelCoords1 reads a medium length delta from the bit-stream.
-// The total payload is 8-bits long:
+// The total PayloadBytes is 8-bits long:
 //
 // bits |
 // 0-3  | y-delta
@@ -182,7 +205,12 @@ const (
 	picDrawControl              = 4
 )
 
-type picState struct {
+type PicState struct {
+	Visual   *image.Paletted
+	Priority *image.Paletted
+	Control  *image.Paletted
+	AUX      *image.Paletted
+
 	palettes [4]picPalette
 	drawMode picDrawMode
 
@@ -193,24 +221,19 @@ type picState struct {
 	patternCode    uint8
 	patternTexture uint8
 
-	visual   *image.Paletted
-	priority *image.Paletted
-	control  *image.Paletted
-	aux      *image.Paletted
-
 	ditherer *screen.Ditherer
 
-	debugFn   func(*picState, ...interface{})
+	debugFn   DebugCallback
 	fillStack []point
 }
 
-func (s *picState) debugger(params ...interface{}) {
+func (s *PicState) debugger(params ...interface{}) {
 	if s.debugFn != nil {
 		s.debugFn(s, params...)
 	}
 }
 
-func (s *picState) fill(cx, cy int) {
+func (s *PicState) fill(cx, cy int) {
 	switch {
 	case s.drawMode.Has(picDrawVisual):
 		// TODO this doesn't seem like it should happen. either legalColor shouldn't be 15 or color shouldn't be 15/15
@@ -218,95 +241,75 @@ func (s *picState) fill(cx, cy int) {
 			return
 		}
 		c1, c2 := s.ditherer.Get(s.color)
-		fill(cx, cy, 0xf, s.visual, c1, c2, dither5050, s.fillStack)
+		fill(cx, cy, 0xf, s.Visual, c1, c2, dither5050, s.fillStack)
 		s.debugger()
 	case s.drawMode.Has(picDrawPriority):
 		if s.priorityCode == 0 {
 			return
 		}
 		c := s.priorityCode
-		fill(cx, cy, 0x0, s.priority, c, c, noDither, s.fillStack)
+		fill(cx, cy, 0x0, s.Priority, c, c, noDither, s.fillStack)
 	case s.drawMode.Has(picDrawControl):
 		if s.controlCode == 0 {
 			return
 		}
 		c := s.controlCode
-		fill(cx, cy, 0x0, s.control, c, c, noDither, s.fillStack)
+		fill(cx, cy, 0x0, s.Control, c, c, noDither, s.fillStack)
 	default:
 		return
 	}
 }
 
-func (s *picState) line(x1, y1, x2, y2 int) {
+func (s *PicState) line(x1, y1, x2, y2 int) {
 	if s.drawMode.Has(picDrawVisual) {
 		c1, c2 := s.ditherer.Get(s.color)
-		line(x1, y1, x2, y2, s.visual, c1, c2, dither5050)
+		line(x1, y1, x2, y2, s.Visual, c1, c2, dither5050)
 		s.debugger()
 	}
 	if s.drawMode.Has(picDrawPriority) {
 		c := s.priorityCode
-		line(x1, y1, x2, y2, s.priority, c, c, noDither)
+		line(x1, y1, x2, y2, s.Priority, c, c, noDither)
 	}
 	if s.drawMode.Has(picDrawControl) {
 		c := s.controlCode
-		line(x1, y1, x2, y2, s.control, c, c, noDither)
+		line(x1, y1, x2, y2, s.Control, c, c, noDither)
 	}
 }
 
-func (s *picState) drawPattern(cx, cy int) {
+func (s *PicState) drawPattern(cx, cy int) {
 	size := int(s.patternCode & 0x7)
 	isRect := s.patternCode&0x10 != 0
 	solid := s.patternCode&0x20 == 0
 
 	if s.drawMode.Has(picDrawVisual) {
 		c1, c2 := s.ditherer.Get(s.color)
-		drawPattern(cx, cy, size, isRect, solid, s.visual, c1, c2, dither5050)
+		drawPattern(cx, cy, size, isRect, solid, s.Visual, c1, c2, dither5050)
 		s.debugger()
 	}
 	if s.drawMode.Has(picDrawPriority) {
 		c := s.priorityCode
-		drawPattern(cx, cy, size, isRect, solid, s.priority, c, c, noDither)
+		drawPattern(cx, cy, size, isRect, solid, s.Priority, c, c, noDither)
 	}
 	if s.drawMode.Has(picDrawControl) {
 		c := s.controlCode
-		drawPattern(cx, cy, size, isRect, solid, s.control, c, c, noDither)
+		drawPattern(cx, cy, size, isRect, solid, s.Control, c, c, noDither)
 	}
 }
 
-type PicOptions struct {
-	*screen.Ditherer
-	DebugFn func(*picState, ...interface{})
-}
-
-func ReadPic(
-	resource *Resource,
-	options ...*PicOptions,
+func readPic(
+	payload []byte,
+	ditherer *screen.Ditherer,
+	debugFn func(*PicState, ...interface{}),
 ) (*image.Paletted, error) {
 	r := picReader{
-		bitreader.NewReader(bufio.NewReader(bytes.NewReader(resource.bytes))),
+		bitreader.NewReader(bufio.NewReader(bytes.NewReader(payload))),
 	}
 
-	var debugFn func(*picState, ...interface{})
-	ditherer := screen.EGADitherer
-	for _, opts := range options {
-		if opts == nil {
-			continue
-		}
-
-		if opts.Ditherer != nil {
-			ditherer = opts.Ditherer
-		}
-
-		if opts.DebugFn != nil {
-			debugFn = opts.DebugFn
-		}
-	}
-
-	var state = picState{
-		visual:   image.NewPaletted(image.Rect(0, 0, 320, 190), ditherer.Palette),
-		priority: image.NewPaletted(image.Rect(0, 0, 320, 190), screen.Depth16Palette),
-		control:  image.NewPaletted(image.Rect(0, 0, 320, 190), screen.EGAPalette),
-		aux:      image.NewPaletted(image.Rect(0, 0, 320, 190), screen.Depth16Palette),
+	var state = PicState{
+		Visual:   image.NewPaletted(image.Rect(0, 0, 320, 190), ditherer.Palette),
+		Priority: image.NewPaletted(image.Rect(0, 0, 320, 190), screen.Depth16Palette),
+		Control:  image.NewPaletted(image.Rect(0, 0, 320, 190), screen.EGAPalette),
+		AUX:      image.NewPaletted(image.Rect(0, 0, 320, 190), screen.Depth16Palette),
 		drawMode: picDrawVisual | picDrawPriority,
 		palettes: [...]picPalette{
 			defaultPalette,
@@ -320,7 +323,7 @@ func ReadPic(
 	}
 
 	for i := 0; i < (320 * 190); i++ {
-		state.visual.Pix[i] = 0xf
+		state.Visual.Pix[i] = 0xf
 	}
 
 opLoop:
@@ -588,13 +591,15 @@ opLoop:
 				if err != nil {
 					return nil, err
 				}
-				// TODO this looks like a palette, but not sure
-				// what its supposed to be used for...
-				//state.palettes[pal.I] = pal.P
+				// TODO this looks like a palette, but not sure what its supposed to be used for...
+				// state.palettes[pal.I] = pal.P
 			case pOpxCode(0x03), pOpxCode(0x05):
 				// not sure what this byte is for...
-				r.bits.Skip(8)
+				if err := r.bits.Skip(8); err != nil {
+					return nil, err
+				}
 			case pOpxCode(0x04), pOpxCode(0x06):
+				// TODO not sure what this OP is for
 			case pOpxCode(0x08):
 				// TODO not sure what this is for (KQ1-sci0 remake uses this op-code)
 				for {
@@ -603,7 +608,9 @@ opLoop:
 					} else if peek >= 0xf0 {
 						break
 					}
-					r.bits.Skip(8)
+					if err := r.bits.Skip(8); err != nil {
+						return nil, err
+					}
 				}
 			default:
 				return nil, fmt.Errorf("unhandled opx 0x%02x", opx)
@@ -615,7 +622,7 @@ opLoop:
 		}
 
 	}
-	return state.visual, nil
+	return state.Visual, nil
 }
 
 type point struct{ x, y int }

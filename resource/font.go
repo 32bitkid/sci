@@ -1,4 +1,4 @@
-package resources
+package resource
 
 import (
 	"bytes"
@@ -7,35 +7,8 @@ import (
 	"strings"
 )
 
-type Font struct {
-	Count      uint16
-	LineHeight uint16
-	Characters []Character
-}
-
-type Character struct {
-	Width   uint8
-	Height  uint8
-	Bitmaps []byte
-}
-
-func (c Character) String() string {
-	result := ""
-	bpr := int((c.Width + 7) >> 3)
-	for y := 0; y < int(c.Height); y++ {
-		line := ""
-		for x := 0; x < int(bpr); x++ {
-			d := c.Bitmaps[y*bpr+x]
-			line += fmt.Sprintf("%08b", d)
-		}
-		result += line[0:c.Width] + "\n"
-	}
-
-	return strings.Replace(strings.Replace(result, "0", " ", -1), "1", "\u2588", -1)
-}
-
-func ReadFont(res *Resource) (*Font, error) {
-	r := bytes.NewReader(res.bytes)
+func NewFont(b []byte) (*Font, error) {
+	r := bytes.NewReader(b)
 
 	type fontHeader struct {
 		_          [2]uint8
@@ -87,4 +60,31 @@ func ReadFont(res *Resource) (*Font, error) {
 	}
 
 	return &font, nil
+}
+
+type Font struct {
+	Count      uint16
+	LineHeight uint16
+	Characters []Character
+}
+
+type Character struct {
+	Width   uint8
+	Height  uint8
+	Bitmaps []byte
+}
+
+func (c Character) String() string {
+	result := ""
+	bpr := int((c.Width + 7) >> 3)
+	for y := 0; y < int(c.Height); y++ {
+		line := ""
+		for x := 0; x < int(bpr); x++ {
+			d := c.Bitmaps[y*bpr+x]
+			line += fmt.Sprintf("%08b", d)
+		}
+		result += line[0:c.Width] + "\n"
+	}
+
+	return strings.Replace(strings.Replace(result, "0", " ", -1), "1", "\u2588", -1)
 }

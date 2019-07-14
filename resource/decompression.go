@@ -1,11 +1,21 @@
-package resources
+package resource
 
 import (
-	"bufio"
 	"encoding/binary"
 	"fmt"
 	"github.com/32bitkid/bitreader"
+	"io"
 )
+
+type CompressionMethod uint16
+
+const (
+	CompressionNone    CompressionMethod = 0
+	CompressionLZW                       = 1
+	CompressionHuffman                   = 2
+)
+
+// Huffman decoding
 
 type huffmanNodes struct {
 	Value    uint8
@@ -46,7 +56,7 @@ func (h *huffmanState) next(idx int) (uint8, bool, error) {
 	return h.next(idx + next)
 }
 
-func huffman(src *bufio.Reader, dest []uint8) error {
+func huffman(src io.Reader, dest []uint8) error {
 	var nodeCount uint8
 	if err := binary.Read(src, binary.LittleEndian, &nodeCount); err != nil {
 		return err

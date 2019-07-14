@@ -3,13 +3,15 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:4a968af75da8141e8f8b1b698a9bc3b82d73efea75d508691181fbd99e8736e3"
   name = "github.com/32bitkid/bitreader"
   packages = ["."]
+  pruneopts = "UT"
   revision = "2d96e4bc038891a652935a85732935447ae7b787"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1701795b7b6899e3e2d18239a18f6fae6358f5b1bda605a27e6c170c429df091"
+  input-imports = ["github.com/32bitkid/bitreader"]
   solver-name = "gps-cdcl"
   solver-version = 1
