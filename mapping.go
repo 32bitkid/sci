@@ -45,12 +45,10 @@ func (dr *diskMapping) Resource() (resource.Resource, error) {
 		return nil, err
 	}
 
-
-
 	dr.cache = &loadedResource{
-		id: resourceID,
+		id:           resourceID,
 		resourceType: dr.resourceType,
-		bytes: payload,
+		bytes:        payload,
 	}
 
 	return dr.cache, nil
@@ -59,9 +57,9 @@ func (dr *diskMapping) Resource() (resource.Resource, error) {
 type loadedResource struct {
 	id           resource.RID
 	resourceType resource.Type
-	bytes []uint8
+	bytes        []uint8
 }
 
-func (res loadedResource) ID() resource.RID       { return res.id }
-func (res loadedResource) Type() resource.Type    { return res.resourceType }
-func (res loadedResource) Bytes() []byte { return res.bytes }
+func (res loadedResource) ID() resource.RID    { return res.id }
+func (res loadedResource) Type() resource.Type { return res.resourceType }
+func (res loadedResource) Bytes() []byte       { return res.bytes }

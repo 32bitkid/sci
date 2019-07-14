@@ -9,7 +9,8 @@ type Mapping interface {
 	Resource() (Resource, error)
 }
 
-type PictureMapping struct { Mapping }
+type PictureMapping struct{ Mapping }
+
 func (pic PictureMapping) Render(options ...PicOptions) (*image.Paletted, error) {
 	res, err := pic.Resource()
 	if err != nil {
