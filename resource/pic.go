@@ -732,7 +732,7 @@ func drawPattern(cx, cy int, size int, isRect, isSolid bool, dst *image.Paletted
 				if cx+x < 0 || cx+x >= 320 {
 					continue
 				}
-				if isSolid || rand.Float64() < 0.5 {
+				if isSolid || rand.Float64() < 0.15 {
 					dst.Pix[offset+cx+x] = dither(cx+x, y, c1, c2)
 				}
 			}
@@ -750,7 +750,7 @@ func drawPattern(cx, cy int, size int, isRect, isSolid bool, dst *image.Paletted
 				if cx+x < 0 || cx+x >= 320 {
 					continue
 				}
-				if isSolid || rand.Float64() < 0.5 {
+				if isSolid || rand.Float64() < 0.15 {
 					dst.Pix[offset+cx+x] = dither(cx+x, y, c1, c2)
 				}
 			}
