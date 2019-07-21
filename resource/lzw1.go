@@ -74,20 +74,20 @@ next:
 	if token >= currentToken {
 		token = lastBits
 		stack[stackDepth] = lastByte
-		stackDepth += 1
+		stackDepth++
 	}
 	for (token > 0xff) && (token < 0x1004) {
 		stack[stackDepth] = tokens[token].data
-		stackDepth += 1
+		stackDepth++
 		token = tokens[token].next
 	}
 
 	lastByte = uint8(token & 0xff)
 	stack[stackDepth] = lastByte
-	stackDepth += 1
+	stackDepth++
 
 	for stackDepth > 0 {
-		stackDepth -= 1
+		stackDepth--
 		out.WriteByte(stack[stackDepth])
 		if max == out.Len() {
 			goto done
@@ -97,9 +97,9 @@ next:
 	if currentToken <= endToken {
 		tokens[currentToken].data = lastByte
 		tokens[currentToken].next = lastBits
-		currentToken += 1
+		currentToken++
 		if currentToken == endToken && numBits < 12 {
-			numBits += 1
+			numBits++
 			endToken = (endToken << 1) + 1
 		}
 	}
