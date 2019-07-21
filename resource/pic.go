@@ -600,6 +600,25 @@ opLoop:
 				}
 			case pOpxCode(0x04), pOpxCode(0x06):
 				// TODO not sure what this OP is for
+			case pOpxCode(0x07):
+				// TODO not sure what this is for (QfG2 uses this op-code)
+				// Vector?
+				if err := r.bits.Skip(24); err != nil {
+					return nil, err
+				}
+
+				var length uint16
+				if err := binary.Read(r.bits, binary.LittleEndian, &length); err != nil {
+					return nil, err
+				}
+
+				// Payload?
+				for i := uint(0); i < uint(length); i++ {
+					if err := r.bits.Skip(8); err != nil {
+						return nil, err
+					}
+				}
+
 			case pOpxCode(0x08):
 				// TODO not sure what this is for (KQ1-sci0 remake uses this op-code)
 				for {
