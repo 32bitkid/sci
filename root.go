@@ -1,3 +1,14 @@
+// Package sci implements access to SCI0-based Sierra On-Line game
+// assets and vm.
+//
+// The Sierra Creative Interpreter version 0 (SCI0) was Sierra On-Line's
+// second generation game engine, succeeding the Adventure Game
+// Interpreter (AGI). It implemented several upgrades over AGI, namely full
+// EGA (320x200x16) support, improved audio/music support.
+//
+// The SCI0 was succeeded by SCI1, SCI2, and SCI32 engines that extended support
+// for even more sound cards, VGA and SVGA graphics, and FVM.
+
 package sci
 
 import (
@@ -63,6 +74,8 @@ func (root *Root) LoadMapping() error {
 			root.Mapping = append(root.Mapping, resource.ViewMapping{Mapping: mapping})
 		case resource.TypeText:
 			root.Mapping = append(root.Mapping, resource.TextMapping{Mapping: mapping})
+		case resource.TypeCursor:
+			root.Mapping = append(root.Mapping, resource.CursorMapping{Mapping: mapping})
 		case resource.TypeFont:
 			root.Mapping = append(root.Mapping, resource.FontMapping{Mapping: mapping})
 		default:
