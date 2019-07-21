@@ -2,7 +2,6 @@ package resource
 
 import (
 	"compress/lzw"
-	"errors"
 	"io"
 )
 
@@ -30,16 +29,12 @@ func DecompressLZW(r io.Reader, dst []byte, compressedSize, decompressedSize uin
 func DecompressHuffman(r io.Reader, dst []byte, compressedSize, decompressedSize uint16) error {
 	buf := dst[:decompressedSize]
 	lr := io.LimitReader(r, int64(compressedSize))
-	err := huffman(lr, buf)
-	return err
+	return huffman(lr, buf)
 }
 
 func DecompressLZW1(r io.Reader, dst []byte, compressedSize, decompressedSize uint16) error {
-	return errors.New("not implemented: SCI01 LZW decompression")
-}
-
-func DecompressCOMP3(r io.Reader, dst []byte, compressedSize uint16, decompressedSize uint16) error {
-	return errors.New("not implemented: SCI01 COMP3 decompression")
+	lr := io.LimitReader(r, int64(compressedSize))
+	return lzw1(lr, dst[:decompressedSize], int(decompressedSize))
 }
 
 var Decompressors = struct {
@@ -53,8 +48,7 @@ var Decompressors = struct {
 	},
 	SCI01: DecompressorLUT{
 		0: DecompressNone,
-		1: DecompressLZW1,
-		2: DecompressCOMP3,
-		3: DecompressHuffman,
+		1: DecompressHuffman,
+		2: DecompressLZW1,
 	},
 }
