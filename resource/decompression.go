@@ -35,7 +35,7 @@ func DecompressHuffman(r io.Reader, dst []byte, compressedSize, decompressedSize
 }
 
 func DecompressLZW1(r io.Reader, dst []byte, compressedSize, decompressedSize uint16) error {
-	return errors.New("not implemented: SCI01 COMP3 decompression")
+	return errors.New("not implemented: SCI01 LZW decompression")
 }
 
 func DecompressCOMP3(r io.Reader, dst []byte, compressedSize uint16, decompressedSize uint16) error {
