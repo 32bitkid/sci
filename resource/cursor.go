@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 )
 
-func NewCursor() (b []byte, cursor Cursor, err error) {
+func NewCursor(b []byte) (cursor Cursor, err error) {
 	reader := bytes.NewReader(b)
 	err = binary.Read(reader, binary.LittleEndian, &cursor)
 	return

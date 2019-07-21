@@ -16,7 +16,8 @@ type diskMapping struct {
 
 	rootPath string
 
-	cache resource.Resource
+	cache         resource.Resource
+	decompressors resource.DecompressorLUT
 }
 
 func (dr diskMapping) Type() resource.Type     { return dr.resourceType }
@@ -40,7 +41,7 @@ func (dr *diskMapping) Resource() (resource.Resource, error) {
 		return nil, err
 	}
 
-	resourceID, payload, err := resource.ParsePayloadFrom(file)
+	resourceID, payload, err := resource.ParsePayloadFrom(file, dr.decompressors)
 	if err != nil {
 		return nil, err
 	}

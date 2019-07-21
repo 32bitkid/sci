@@ -2,7 +2,6 @@ package resource
 
 import (
 	"bufio"
-	"compress/lzw"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -24,7 +23,9 @@ type resourceHeader struct {
 	CompressionMethod
 }
 
-func ParsePayloadFrom(r io.Reader) (RID, []byte, error) {
+const InvalidRID = RID(0xFFFF)
+
+func ParsePayloadFrom(r io.Reader, decomp DecompressorLUT) (RID, []byte, error) {
 	src := bufio.NewReader(r)
 
 	var header resourceHeader
@@ -33,29 +34,14 @@ func ParsePayloadFrom(r io.Reader) (RID, []byte, error) {
 		return 0xFFFF, nil, err
 	}
 
-	switch header.CompressionMethod {
-	case CompressionNone:
-		buffer := make([]uint8, header.DecompressedSize)
-		if _, err := io.ReadFull(src, buffer); err != nil {
-			return 0xFFFF, nil, err
-		}
-		return header.ID, buffer, nil
-	case CompressionLZW:
-		buffer := make([]uint8, header.DecompressedSize)
-		lr := io.LimitReader(src, int64(header.CompressedSize))
-		r := lzw.NewReader(lr, lzw.LSB, 8)
-		if _, err := io.ReadFull(r, buffer); err != nil {
-			return 0xFFFF, nil, err
-		}
-		return header.ID, buffer, nil
-	case CompressionHuffman:
-		buffer := make([]uint8, header.DecompressedSize)
-		lr := io.LimitReader(src, int64(header.CompressedSize))
-		if err := huffman(lr, buffer); err != nil {
-			return 0xFFFF, nil, err
-		}
-		return header.ID, buffer, nil
+	decompressor, ok := decomp[header.CompressionMethod]
+	if !ok {
+		return InvalidRID, nil, fmt.Errorf("unhandled compression type: %d", header.CompressionMethod)
 	}
 
-	return 0xFFFF, nil, fmt.Errorf("unhandled compression type: %d", header.CompressionMethod)
+	buffer := make([]uint8, header.DecompressedSize)
+	if err := decompressor(src, buffer, header.CompressedSize, header.DecompressedSize); err != nil {
+		return InvalidRID, nil, err
+	}
+	return header.ID, buffer, nil
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/32bitkid/sci/screen"
 )
 
-func AsView(b []byte) (View, error) {
+func NewView(b []byte) (View, error) {
 	r := bytes.NewReader(b)
 
 	var header struct {

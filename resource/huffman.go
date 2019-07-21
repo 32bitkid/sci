@@ -7,14 +7,6 @@ import (
 	"io"
 )
 
-type CompressionMethod uint16
-
-const (
-	CompressionNone    CompressionMethod = 0
-	CompressionLZW                       = 1
-	CompressionHuffman                   = 2
-)
-
 // Huffman decoding
 
 type huffmanNodes struct {
