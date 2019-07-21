@@ -33,7 +33,7 @@ type PicOptions struct {
 	DebugFn DebugCallback
 }
 
-type DebugCallback func(*PicState, ...interface{})
+type DebugCallback func(*PicState)
 
 type ditherFn func(x, y int, c1, c2 uint8) uint8
 
@@ -227,9 +227,9 @@ type PicState struct {
 	fillStack []point
 }
 
-func (s *PicState) debugger(params ...interface{}) {
+func (s *PicState) debugger() {
 	if s.debugFn != nil {
-		s.debugFn(s, params...)
+		s.debugFn(s)
 	}
 }
 
@@ -299,7 +299,7 @@ func (s *PicState) drawPattern(cx, cy int) {
 func readPic(
 	payload []byte,
 	ditherer *screen.Ditherer,
-	debugFn func(*PicState, ...interface{}),
+	debugFn DebugCallback,
 ) (*image.Paletted, error) {
 	r := picReader{
 		bitreader.NewReader(bufio.NewReader(bytes.NewReader(payload))),
