@@ -31,9 +31,9 @@ func lzw1(r io.Reader, dst []byte, max int) error {
 		currentToken uint16
 		endToken     uint16
 
-		lastByte   uint8  = 0
-		stackDepth uint16 = 0
-		lastBits   uint16 = 0
+		lastByte   uint8
+		stackDepth uint16
+		lastBits   uint16
 
 		token uint16
 		bits  uint16
