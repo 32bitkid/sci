@@ -22,6 +22,7 @@ func rgbMul(a, b color.Color, _ float64) color.Color {
 	}
 }
 
+// TODO refactor this. It's not great.
 func RenderToCRT(src image.Image) image.Image {
 	srcRect := src.Bounds()
 	dst := image.NewRGBA(image.Rect(0, 0, srcRect.Dx()*6, srcRect.Dy()*6))

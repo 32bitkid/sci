@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"image"
-	"math/rand"
 
 	"github.com/32bitkid/bitreader"
 	"github.com/32bitkid/sci/screen"
@@ -281,18 +280,23 @@ func (s *PicState) drawPattern(cx, cy int) {
 	isRect := s.patternCode&0x10 != 0
 	solid := s.patternCode&0x20 == 0
 
+	var filler FillTextureFn = solidFillTexture
+	if !solid {
+		filler = newSierraFillTexture(s.patternTexture)
+	}
+
 	if s.drawMode.Has(picDrawVisual) {
 		c1, c2 := s.ditherer.Get(s.color)
-		drawPattern(cx, cy, size, isRect, solid, s.Visual, c1, c2, dither5050)
+		drawPattern(cx, cy, size, isRect, filler, s.Visual, c1, c2, dither5050)
 		s.debugger()
 	}
 	if s.drawMode.Has(picDrawPriority) {
 		c := s.priorityCode
-		drawPattern(cx, cy, size, isRect, solid, s.Priority, c, c, noDither)
+		drawPattern(cx, cy, size, isRect, filler, s.Priority, c, c, noDither)
 	}
 	if s.drawMode.Has(picDrawControl) {
 		c := s.controlCode
-		drawPattern(cx, cy, size, isRect, solid, s.Control, c, c, noDither)
+		drawPattern(cx, cy, size, isRect, filler, s.Control, c, c, noDither)
 	}
 }
 
@@ -739,7 +743,7 @@ var sqrts = [50]int{
 	6, 7, 7, 7, 7, 7, 7,
 }
 
-func drawPattern(cx, cy int, size int, isRect, isSolid bool, dst *image.Paletted, c1, c2 uint8, dither ditherFn) {
+func drawPattern(cx, cy int, size int, isRect bool, filler FillTextureFn, dst *image.Paletted, c1, c2 uint8, dither ditherFn) {
 	if isRect {
 		for y := -size; y <= size; y++ {
 			if cy+y < 0 || cy+y >= 190 {
@@ -751,7 +755,7 @@ func drawPattern(cx, cy int, size int, isRect, isSolid bool, dst *image.Paletted
 				if cx+x < 0 || cx+x >= 320 {
 					continue
 				}
-				if isSolid || rand.Float64() < 0.25 {
+				if filler() {
 					dst.Pix[offset+cx+x] = dither(cx+x, y, c1, c2)
 				}
 			}
@@ -769,7 +773,7 @@ func drawPattern(cx, cy int, size int, isRect, isSolid bool, dst *image.Paletted
 				if cx+x < 0 || cx+x >= 320 {
 					continue
 				}
-				if isSolid || rand.Float64() < 0.25 {
+				if filler() {
 					dst.Pix[offset+cx+x] = dither(cx+x, y, c1, c2)
 				}
 			}
