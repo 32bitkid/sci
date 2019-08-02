@@ -39,14 +39,14 @@ var vectorPatternTextureOffset = [128]int{
 }
 
 /* TODO some images are more sensitive to textured fills, and will render incorrectly if the *exact* random
-     number generator is not used. It looks like they targeted ~25% fill-rate for their textured fills. This
-     doesn't look like its the 100% proper implementation, I'll have to try to hunt down something that is more
-     accurate.
+   number generator is not used. It looks like they targeted ~25% fill-rate for their textured fills. This
+   doesn't look like its the 100% proper implementation, I'll have to try to hunt down something that is more
+   accurate.
 */
 func newSierraFillTexture(startIdx uint8) FillTextureFn {
 	idx := vectorPatternTextureOffset[startIdx]
 	return func() bool {
-		result := vectorPatternTextures[idx % len(vectorPatternTextures)]
+		result := vectorPatternTextures[idx%len(vectorPatternTextures)]
 		idx++
 		return result
 	}
