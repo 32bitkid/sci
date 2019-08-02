@@ -20,10 +20,23 @@ import (
 
 // Root is reference to the root path of a SCI0 game.
 type Root struct {
-	Path    string
-	Mapping []resource.Mapping
-
 	Decompressors resource.DecompressorLUT
+	Path          string
+	Mapping       []resource.Mapping
+}
+
+func NewSCI0Root(path string) Root {
+	return Root{
+		Path:          path,
+		Decompressors: resource.Decompressors.SCI0,
+	}
+}
+
+func NewSCI01Root(path string) Root {
+	return Root{
+		Path:          path,
+		Decompressors: resource.Decompressors.SCI01,
+	}
 }
 
 const idEndToken uint16 = (1 << 16) - 1
