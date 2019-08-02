@@ -31,7 +31,7 @@ func (view ViewMapping) Render() (View, error) {
 
 type TextMapping struct{ Mapping }
 
-func (view TextMapping) GetText() (Text, error) {
+func (view TextMapping) Text() (Text, error) {
 	res, err := view.Resource()
 	if err != nil {
 		return nil, err
@@ -41,7 +41,7 @@ func (view TextMapping) GetText() (Text, error) {
 
 type FontMapping struct{ Mapping }
 
-func (view FontMapping) GetFont() (*Font, error) {
+func (view FontMapping) Font() (*Font, error) {
 	res, err := view.Resource()
 	if err != nil {
 		return nil, err
@@ -51,7 +51,7 @@ func (view FontMapping) GetFont() (*Font, error) {
 
 type CursorMapping struct{ Mapping }
 
-func (view CursorMapping) GetCursor() (Cursor, error) {
+func (view CursorMapping) Cursor() (Cursor, error) {
 	res, err := view.Resource()
 	if err != nil {
 		return Cursor{}, err
