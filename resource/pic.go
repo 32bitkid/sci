@@ -11,18 +11,14 @@ import (
 	"github.com/32bitkid/sci/screen"
 )
 
-type Pic struct {
-	Visual   *image.Paletted
-	Priority *image.Paletted
-	Control  *image.Paletted
-}
-
-func NewPic(b []byte, options ...PicOptions) (Pic, error) {
+func NewPic(b []byte, options ...PicOptions) (screen.Pic, error) {
 	var debugFn DebugCallback
-	ditherer := screen.EGADitherer
+	var scaler screen.Scaler = &screen.Scaler1x1{
+		VisualDitherer: screen.EGADitherer,
+	}
 	for _, opts := range options {
-		if opts.Ditherer != nil {
-			ditherer = opts.Ditherer
+		if opts.Scaler != nil {
+			scaler = opts.Scaler
 		}
 
 		if opts.DebugFn != nil {
@@ -30,25 +26,15 @@ func NewPic(b []byte, options ...PicOptions) (Pic, error) {
 		}
 	}
 
-	return readPic(b, ditherer, debugFn)
+	return readPic(b, scaler, debugFn)
 }
 
 type PicOptions struct {
-	*screen.Ditherer
+	screen.Scaler
 	DebugFn DebugCallback
 }
 
 type DebugCallback func(*PicState)
-
-type ditherFn func(x, y int, c1, c2 uint8) uint8
-
-var noDither = func(x, y int, c1, _ uint8) uint8 { return c1 }
-var dither5050 ditherFn = func(x, y int, c1, c2 uint8) uint8 {
-	if (x&1)^(y&1) == 0 {
-		return c1
-	}
-	return c2
-}
 
 type picReader struct {
 	bits bitreader.BitReader
@@ -211,7 +197,7 @@ func (mode picDrawMode) Has(flag picDrawMode) bool {
 }
 
 type PicState struct {
-	Pic
+	screen.Pic
 
 	palettes [4]picPalette
 	drawMode picDrawMode
@@ -223,9 +209,7 @@ type PicState struct {
 	patternCode    uint8
 	patternTexture uint8
 
-	ditherer  *screen.Ditherer
-	debugFn   DebugCallback
-	fillStack []point
+	debugFn DebugCallback
 }
 
 func (s *PicState) debugger() {
@@ -242,21 +226,18 @@ func (s *PicState) fill(cx, cy int) {
 			//  It's asking for a solid white fill, but that should be a noop if legalColor is always 15.
 			return
 		}
-		c1, c2 := s.ditherer.Get(s.color)
-		fill(cx, cy, 0xf, s.Visual, c1, c2, dither5050, s.fillStack)
+		s.Visual.Fill(cx, cy, 0xf, s.color)
 		s.debugger()
 	case s.drawMode.Has(picDrawPriority):
 		if s.priorityCode == 0 {
 			return
 		}
-		c := s.priorityCode
-		fill(cx, cy, 0x0, s.Priority, c, c, noDither, s.fillStack)
+		s.Priority.Fill(cx, cy, 0x0, s.priorityCode)
 	case s.drawMode.Has(picDrawControl):
 		if s.controlCode == 0 {
 			return
 		}
-		c := s.controlCode
-		fill(cx, cy, 0x0, s.Control, c, c, noDither, s.fillStack)
+		s.Priority.Fill(cx, cy, 0x0, s.controlCode)
 	default:
 		return
 	}
@@ -264,50 +245,43 @@ func (s *PicState) fill(cx, cy int) {
 
 func (s *PicState) line(x1, y1, x2, y2 int) {
 	if s.drawMode.Has(picDrawVisual) {
-		c1, c2 := s.ditherer.Get(s.color)
-		line(x1, y1, x2, y2, s.Visual, c1, c2, dither5050)
+		s.Visual.Line(x1, y1, x2, y2, s.color)
 		s.debugger()
 	}
 	if s.drawMode.Has(picDrawPriority) {
 		c := s.priorityCode
-		line(x1, y1, x2, y2, s.Priority, c, c, noDither)
+		s.Priority.Line(x1, y1, x2, y2, c)
 	}
 	if s.drawMode.Has(picDrawControl) {
 		c := s.controlCode
-		line(x1, y1, x2, y2, s.Control, c, c, noDither)
+		s.Control.Line(x1, y1, x2, y2, c)
 	}
 }
 
 func (s *PicState) drawPattern(cx, cy int) {
 	size := int(s.patternCode & 0x7)
 	isRect := s.patternCode&0x10 != 0
-	solid := s.patternCode&0x20 == 0
-
-	var filler FillTextureFn = solidFillTexture
-	if !solid {
-		filler = newSierraFillTexture(s.patternTexture)
-	}
+	isSolid := s.patternCode&0x20 == 0
 
 	if s.drawMode.Has(picDrawVisual) {
-		c1, c2 := s.ditherer.Get(s.color)
-		drawPattern(cx, cy, size, isRect, filler, s.Visual, c1, c2, dither5050)
+		s.Visual.Pattern(cx, cy, size, isRect, isSolid, s.patternTexture, s.color)
 		s.debugger()
 	}
 	if s.drawMode.Has(picDrawPriority) {
 		c := s.priorityCode
-		drawPattern(cx, cy, size, isRect, filler, s.Priority, c, c, noDither)
+		s.Priority.Pattern(cx, cy, size, isRect, isSolid, s.patternTexture, c)
 	}
 	if s.drawMode.Has(picDrawControl) {
 		c := s.controlCode
-		drawPattern(cx, cy, size, isRect, filler, s.Control, c, c, noDither)
+		s.Control.Pattern(cx, cy, size, isRect, isSolid, s.patternTexture, c)
 	}
 }
 
 func readPic(
 	payload []byte,
-	ditherer *screen.Ditherer,
+	scaler screen.Scaler,
 	debugFn DebugCallback,
-) (Pic, error) {
+) (screen.Pic, error) {
 	r := picReader{
 		bitreader.NewReader(bufio.NewReader(bytes.NewReader(payload))),
 	}
@@ -315,11 +289,7 @@ func readPic(
 	bounds := image.Rect(0, 0, 320, 190)
 
 	var state = PicState{
-		Pic: Pic{
-			Visual:   image.NewPaletted(bounds, ditherer.Palette),
-			Priority: image.NewPaletted(bounds, screen.Depth16Palette),
-			Control:  image.NewPaletted(bounds, screen.EGAPalette),
-		},
+		Pic:      scaler.NewPic(bounds),
 		drawMode: picDrawVisual | picDrawPriority,
 		palettes: [4]picPalette{
 			defaultPalette,
@@ -327,29 +297,29 @@ func readPic(
 			defaultPalette,
 			defaultPalette,
 		},
-		ditherer:  ditherer,
-		debugFn:   debugFn,
-		fillStack: make([]point, 0, 320*190),
+		debugFn: debugFn,
 	}
 
-	for i := 0; i < (320 * 190); i++ {
-		state.Visual.Pix[i] = 0xF
-		state.Priority.Pix[i] = 0x0
-		state.Control.Pix[i] = 0x0
+	for y := 0; y < 190; y++ {
+		for x := 0; x < 320; x++ {
+			state.Visual.SetColorIndex(x, y, 0xF)
+			state.Priority.SetColorIndex(x, y, 0x0)
+			state.Control.SetColorIndex(x, y, 0x0)
+		}
 	}
 
 opLoop:
 	for {
 		op, err := r.bits.Read8(8)
 		if err != nil {
-			return Pic{}, err
+			return screen.Pic{}, err
 		}
 
 		switch pOpCode(op) {
 		case pOpSetColor:
 			code, err := r.bits.Read8(8)
 			if err != nil {
-				return Pic{}, err
+				return screen.Pic{}, err
 			}
 
 			pal := code / 40
@@ -363,7 +333,7 @@ opLoop:
 		case pOpSetPriority:
 			code, err := r.bits.Read8(8)
 			if err != nil {
-				return Pic{}, err
+				return screen.Pic{}, err
 			}
 			state.priorityCode = code & 0xF
 			state.drawMode.Set(picDrawPriority, true)
@@ -373,7 +343,7 @@ opLoop:
 		case pOpSetControl:
 			code, err := r.bits.Read8(8)
 			if err != nil {
-				return Pic{}, err
+				return screen.Pic{}, err
 			}
 			state.controlCode = code & 0xf
 			state.drawMode.Set(picDrawControl, true)
@@ -384,18 +354,18 @@ opLoop:
 		case pOpShortLines:
 			x1, y1, err := r.getAbsCoords()
 			if err != nil {
-				return Pic{}, err
+				return screen.Pic{}, err
 			}
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
-					return Pic{}, err
+					return screen.Pic{}, err
 				} else if peek >= 0xf0 {
 					break
 				}
 
 				x2, y2, err := r.getRelCoords1(x1, y1)
 				if err != nil {
-					return Pic{}, err
+					return screen.Pic{}, err
 				}
 
 				state.line(x1, y1, x2, y2)
@@ -404,18 +374,18 @@ opLoop:
 		case pOpMediumLines:
 			x1, y1, err := r.getAbsCoords()
 			if err != nil {
-				return Pic{}, err
+				return screen.Pic{}, err
 			}
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
-					return Pic{}, err
+					return screen.Pic{}, err
 				} else if peek >= 0xf0 {
 					break
 				}
 
 				x2, y2, err := r.getRelCoords2(x1, y1)
 				if err != nil {
-					return Pic{}, err
+					return screen.Pic{}, err
 				}
 
 				state.line(x1, y1, x2, y2)
@@ -424,18 +394,18 @@ opLoop:
 		case pOpLongLines:
 			x1, y1, err := r.getAbsCoords()
 			if err != nil {
-				return Pic{}, err
+				return screen.Pic{}, err
 			}
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
-					return Pic{}, err
+					return screen.Pic{}, err
 				} else if peek >= 0xf0 {
 					break
 				}
 
 				x2, y2, err := r.getAbsCoords()
 				if err != nil {
-					return Pic{}, err
+					return screen.Pic{}, err
 				}
 
 				state.line(x1, y1, x2, y2)
@@ -446,14 +416,14 @@ opLoop:
 		case pOpFill:
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
-					return Pic{}, err
+					return screen.Pic{}, err
 				} else if peek >= 0xf0 {
 					break
 				}
 
 				x, y, err := r.getAbsCoords()
 				if err != nil {
-					return Pic{}, err
+					return screen.Pic{}, err
 				}
 
 				state.fill(x, y)
@@ -463,27 +433,27 @@ opLoop:
 		case pOpSetPattern:
 			code, err := r.bits.Read8(8)
 			if err != nil {
-				return Pic{}, err
+				return screen.Pic{}, err
 			}
 			state.patternCode = code & 0x3f
 		case pOpShortPatterns:
 			if state.patternCode&0x20 != 0 {
 				texture, err := r.bits.Read8(8)
 				if err != nil {
-					return Pic{}, err
+					return screen.Pic{}, err
 				}
 				state.patternTexture = texture >> 1
 			}
 
 			x, y, err := r.getAbsCoords()
 			if err != nil {
-				return Pic{}, err
+				return screen.Pic{}, err
 			}
 			state.drawPattern(x, y)
 
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
-					return Pic{}, err
+					return screen.Pic{}, err
 				} else if peek >= 0xf0 {
 					break
 				}
@@ -491,14 +461,14 @@ opLoop:
 				if state.patternCode&0x20 != 0 {
 					texture, err := r.bits.Read8(8)
 					if err != nil {
-						return Pic{}, err
+						return screen.Pic{}, err
 					}
 					state.patternTexture = texture >> 1
 				}
 
 				x, y, err = r.getRelCoords1(x, y)
 				if err != nil {
-					return Pic{}, err
+					return screen.Pic{}, err
 				}
 				state.drawPattern(x, y)
 			}
@@ -506,20 +476,20 @@ opLoop:
 			if state.patternCode&0x20 != 0 {
 				texture, err := r.bits.Read8(8)
 				if err != nil {
-					return Pic{}, err
+					return screen.Pic{}, err
 				}
 				state.patternTexture = texture >> 1
 			}
 
 			x, y, err := r.getAbsCoords()
 			if err != nil {
-				return Pic{}, err
+				return screen.Pic{}, err
 			}
 			state.drawPattern(x, y)
 
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
-					return Pic{}, err
+					return screen.Pic{}, err
 				} else if peek >= 0xf0 {
 					break
 				}
@@ -527,21 +497,21 @@ opLoop:
 				if state.patternCode&0x20 != 0 {
 					texture, err := r.bits.Read8(8)
 					if err != nil {
-						return Pic{}, err
+						return screen.Pic{}, err
 					}
 					state.patternTexture = texture >> 1
 				}
 
 				x, y, err = r.getRelCoords2(x, y)
 				if err != nil {
-					return Pic{}, err
+					return screen.Pic{}, err
 				}
 				state.drawPattern(x, y)
 			}
 		case pOpAbsolutePatterns:
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
-					return Pic{}, err
+					return screen.Pic{}, err
 				} else if peek >= 0xf0 {
 					break
 				}
@@ -549,14 +519,14 @@ opLoop:
 				if state.patternCode&0x20 != 0 {
 					texture, err := r.bits.Read8(8)
 					if err != nil {
-						return Pic{}, err
+						return screen.Pic{}, err
 					}
 					state.patternTexture = texture >> 1
 				}
 
 				x, y, err := r.getAbsCoords()
 				if err != nil {
-					return Pic{}, err
+					return screen.Pic{}, err
 				}
 				state.drawPattern(x, y)
 			}
@@ -565,25 +535,25 @@ opLoop:
 		case pOpOPX:
 			opx, err := r.bits.Read8(8)
 			if err != nil {
-				return Pic{}, err
+				return screen.Pic{}, err
 			}
 			switch pOpxCode(opx) {
 			case pOpxUpdatePaletteEntries:
 				for {
 					if peek, err := r.bits.Peek8(8); err != nil {
-						return Pic{}, err
+						return screen.Pic{}, err
 					} else if peek >= 0xf0 {
 						break
 					}
 
 					index, err := r.bits.Read8(8)
 					if err != nil {
-						return Pic{}, err
+						return screen.Pic{}, err
 					}
 
 					color, err := r.bits.Read8(8)
 					if err != nil {
-						return Pic{}, err
+						return screen.Pic{}, err
 					}
 					state.palettes[index/40][index%40] = color
 				}
@@ -591,11 +561,11 @@ opLoop:
 			case pOpxSetPalette:
 				i, err := r.bits.Read8(8)
 				if err != nil {
-					return Pic{}, err
+					return screen.Pic{}, err
 				}
 				err = binary.Read(r.bits, binary.LittleEndian, &state.palettes[i])
 				if err != nil {
-					return Pic{}, err
+					return screen.Pic{}, err
 				}
 			case pOpxCode(0x02):
 				// TODO this looks like a palette, but not sure what its supposed to be used for...
@@ -605,13 +575,13 @@ opLoop:
 				}
 				err := binary.Read(r.bits, binary.LittleEndian, &pal)
 				if err != nil {
-					return Pic{}, err
+					return screen.Pic{}, err
 				}
 				// state.palettes[pal.I] = pal.P
 			case pOpxCode(0x03), pOpxCode(0x05):
 				// TODO not sure what this byte is for...
 				if err := r.bits.Skip(8); err != nil {
-					return Pic{}, err
+					return screen.Pic{}, err
 				}
 			case pOpxCode(0x04), pOpxCode(0x06):
 				// TODO not sure what this OP is for, but it appears to have no payload
@@ -619,18 +589,18 @@ opLoop:
 				// TODO not sure what this is for (QfG2 uses this op-code)
 				// Vector?
 				if err := r.bits.Skip(24); err != nil {
-					return Pic{}, err
+					return screen.Pic{}, err
 				}
 
 				var length uint16
 				if err := binary.Read(r.bits, binary.LittleEndian, &length); err != nil {
-					return Pic{}, err
+					return screen.Pic{}, err
 				}
 
 				// Payload?
 				for i := uint(0); i < uint(length); i++ {
 					if err := r.bits.Skip(8); err != nil {
-						return Pic{}, err
+						return screen.Pic{}, err
 					}
 				}
 
@@ -638,233 +608,25 @@ opLoop:
 				// TODO not sure what this is for (KQ1-sci0 remake uses this op-code)
 				for {
 					if peek, err := r.bits.Peek8(8); err != nil {
-						return Pic{}, err
+						return screen.Pic{}, err
 					} else if peek >= 0xf0 {
 						break
 					}
 					if err := r.bits.Skip(8); err != nil {
-						return Pic{}, err
+						return screen.Pic{}, err
 					}
 				}
 			default:
-				return Pic{}, fmt.Errorf("unhandled OPX 0x%02x", opx)
+				return screen.Pic{}, fmt.Errorf("unhandled OPX 0x%02x", opx)
 			}
 
 		case pOpDone:
 			break opLoop
 		default:
-			return Pic{}, fmt.Errorf("unhandled OP 0x%02x", op)
+			return screen.Pic{}, fmt.Errorf("unhandled OP 0x%02x", op)
 		}
 
 	}
 
 	return state.Pic, nil
-}
-
-type point struct{ x, y int }
-
-func (p point) isLegal(dst *image.Paletted, legalColor uint8) bool {
-	idx := p.y*dst.Stride + p.x
-	return dst.Pix[idx] == legalColor
-}
-
-func fill(cx, cy int, legalColor uint8, dst *image.Paletted, c1, c2 uint8, dither ditherFn, stack []point) {
-	var (
-		p      point
-		stride = dst.Stride
-	)
-
-	// initial
-	stack = append(stack, point{cx, cy})
-
-	for len(stack) > 0 {
-		p, stack = stack[0], stack[1:]
-
-		var (
-			x, y = p.x, p.y
-			i    = y*stride + x
-		)
-
-		if !p.isLegal(dst, legalColor) {
-			continue
-		}
-
-		dst.Pix[i] = dither(x, y, c1, c2)
-
-		if down := (point{x, y + 1}); down.y < 190 {
-			if down.isLegal(dst, legalColor) {
-				stack = append(stack, down)
-			}
-		}
-
-		if up := (point{x, y - 1}); up.y >= 0 {
-			if up.isLegal(dst, legalColor) {
-				stack = append(stack, up)
-			}
-		}
-
-		// flood right
-		for dx := x + 1; dx < 320; dx++ {
-			var i = y*stride + dx
-			if dst.Pix[i] != legalColor {
-				break
-			}
-
-			dst.Pix[i] = dither(dx, y, c1, c2)
-			if down := (point{dx, y + 1}); down.y < 190 {
-				if down.isLegal(dst, legalColor) {
-					stack = append(stack, down)
-				}
-			}
-			if up := (point{dx, y - 1}); up.y >= 0 {
-				if up.isLegal(dst, legalColor) {
-					stack = append(stack, up)
-				}
-			}
-		}
-
-		// flood left
-		for dx := x - 1; dx >= 0; dx-- {
-			var i = y*stride + dx
-			if dst.Pix[i] != legalColor {
-				break
-			}
-
-			dst.Pix[i] = dither(dx, y, c1, c2)
-			if down := (point{dx, y + 1}); down.y < 190 {
-				if down.isLegal(dst, legalColor) {
-					stack = append(stack, down)
-				}
-			}
-			if up := (point{dx, y - 1}); up.y >= 0 {
-				if up.isLegal(dst, legalColor) {
-					stack = append(stack, up)
-				}
-			}
-		}
-	}
-}
-
-// (0..(7*7)) => i => int(math.Round(math.Sqrt(float64(i))))
-var sqrts = [50]int{
-	0, 1, 1, 2, 2, 2, 2,
-	3, 3, 3, 3, 3, 3, 4,
-	4, 4, 4, 4, 4, 4, 4,
-	5, 5, 5, 5, 5, 5, 5,
-	5, 5, 5, 6, 6, 6, 6,
-	6, 6, 6, 6, 6, 6, 6,
-	6, 7, 7, 7, 7, 7, 7,
-}
-
-func drawPattern(cx, cy int, size int, isRect bool, filler FillTextureFn, dst *image.Paletted, c1, c2 uint8, dither ditherFn) {
-	if isRect {
-		for y := -size; y <= size; y++ {
-			if cy+y < 0 || cy+y >= 190 {
-				continue
-			}
-
-			offset := (cy + y) * dst.Stride
-			for x := -size; x <= size+1; x++ {
-				if cx+x < 0 || cx+x >= 320 {
-					continue
-				}
-				if filler() {
-					dst.Pix[offset+cx+x] = dither(cx+x, y, c1, c2)
-				}
-			}
-		}
-	} else {
-		r2 := size * size
-		for y := -size; y <= size; y++ {
-			if cy+y < 0 || cy+y >= 190 {
-				continue
-			}
-
-			offset := (cy + y) * dst.Stride
-			sx := sqrts[r2-y*y]
-			for x := -sx; x <= sx; x++ {
-				if cx+x < 0 || cx+x >= 320 {
-					continue
-				}
-				if filler() {
-					dst.Pix[offset+cx+x] = dither(cx+x, y, c1, c2)
-				}
-			}
-		}
-	}
-}
-
-func absInt(v int) int {
-	if v < 0 {
-		return -v
-	}
-	return v
-}
-
-func swapIf(a, b *int, cond bool) {
-	if cond {
-		*a, *b = *b, *a
-	}
-}
-
-func clip(v *int, min, max int) {
-	switch {
-	case *v < min:
-		*v = min
-	case *v > max:
-		*v = max
-	}
-}
-
-func line(left, top, right, bottom int, dst *image.Paletted, c1, c2 uint8, dither ditherFn) {
-	clip(&left, 0, 319)
-	clip(&top, 0, 189)
-	clip(&right, 0, 319)
-	clip(&bottom, 0, 189)
-
-	switch {
-	case left == right:
-		swapIf(&top, &bottom, top > bottom)
-		for y := top; y <= bottom; y++ {
-			dst.Pix[y*dst.Stride+left] = dither(left, y, c1, c2)
-		}
-	case top == bottom:
-		swapIf(&right, &left, right > left)
-		for x := right; x <= left; x++ {
-			dst.Pix[top*dst.Stride+x] = dither(x, top, c1, c2)
-		}
-	default:
-		// bresenham
-		dx, dy := right-left, bottom-top
-		stepX, stepY := ((dx>>15)<<1)+1, ((dy>>15)<<1)+1
-
-		dx, dy = absInt(dx)<<1, absInt(dy)<<1
-
-		dst.Pix[top*dst.Stride+left] = dither(left, top, c1, c2)
-		dst.Pix[bottom*dst.Stride+right] = dither(right, bottom, c1, c2)
-
-		if dx > dy {
-			fraction := dy - (dx >> 1)
-			for left != right {
-				if fraction >= 0 {
-					top += stepY
-					fraction -= dx
-				}
-				left += stepX
-				fraction += dy
-				dst.Pix[top*dst.Stride+left] = dither(left, top, c1, c2)
-			}
-		} else {
-			fraction := dx - (dy >> 1)
-			for top != bottom {
-				if fraction >= 0 {
-					left += stepX
-					fraction -= dy
-				}
-				top += stepY
-				fraction += dx
-				dst.Pix[top*dst.Stride+left] = dither(left, top, c1, c2)
-			}
-		}
-	}
 }

@@ -1,5 +1,7 @@
 package resource
 
+import "github.com/32bitkid/sci/screen"
+
 type Mapping interface {
 	Type() Type
 	Number() Number
@@ -9,10 +11,10 @@ type Mapping interface {
 
 type PictureMapping struct{ Mapping }
 
-func (pic PictureMapping) Render(options ...PicOptions) (Pic, error) {
+func (pic PictureMapping) Render(options ...PicOptions) (screen.Pic, error) {
 	res, err := pic.Resource()
 	if err != nil {
-		return Pic{}, err
+		return screen.Pic{}, err
 	}
 	return NewPic(res.Bytes(), options...)
 }
