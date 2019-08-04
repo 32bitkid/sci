@@ -9,7 +9,7 @@ type PicCommands interface {
 }
 
 type Buffer interface {
-	SetColorIndex(x, y int, index uint8)
+	Clear(color uint8)
 	Image() *image.Paletted
 	image.PalettedImage
 	PicCommands

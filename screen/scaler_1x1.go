@@ -24,6 +24,7 @@ func (s Scaler1x1) newVisual(r image.Rectangle) Buffer {
 	}
 	return &buffer1x1{
 		Paletted: image.NewPaletted(r, palette),
+		ditherer: s.VisualDitherer,
 		ditherFn: dither5050,
 	}
 }
@@ -57,6 +58,12 @@ var dither5050 ditherFn = func(x, y int, c1, c2 uint8) uint8 {
 		return c1
 	}
 	return c2
+}
+
+func (buf *buffer1x1) Clear(c uint8) {
+	for i, max := 0, len(buf.Paletted.Pix); i < max; i++ {
+		buf.Paletted.Pix[i] = c
+	}
 }
 
 func (buf *buffer1x1) Image() *image.Paletted {

@@ -272,21 +272,19 @@ func NewAdaptiveDithering(in color.Palette, lower, upper float64) *Ditherer {
 			}
 
 			if dLum >= uint32(0xffff*upper) {
-				m1 := rgbMix(pal[c1], pal[c2], 2.0/5.0)
-				m2 := rgbMix(pal[c1], pal[c2], 3.0/5.0)
+				m1 := rgbMix(pal[c1], pal[c2], 2.0/7.0)
+				m2 := rgbMix(pal[c1], pal[c2], 5.0/7.0)
 				idx := uint8(len(pal))
-				pal = append(pal, m1)
-				pal = append(pal, m2)
-				mapping[uint8(c1<<4|c2)] = struct{ c1, c2 uint8 }{idx, idx + 1}
-				mapping[uint8(c2<<4|c1)] = struct{ c1, c2 uint8 }{idx + 1, idx}
+				pal = append(append(pal, m1), m2)
+				mapping[uint8(c1<<4|c2)] = struct{ c1, c2 uint8 }{idx + 1, idx}
+				mapping[uint8(c2<<4|c1)] = struct{ c1, c2 uint8 }{idx, idx + 1}
 			} else if dLum >= uint32(0xffff*lower) {
 				m1 := rgbMix(pal[c1], pal[c2], 1.0/3.0)
 				m2 := rgbMix(pal[c1], pal[c2], 2.0/3.0)
 				idx := uint8(len(pal))
-				pal = append(pal, m1)
-				pal = append(pal, m2)
-				mapping[uint8(c1<<4|c2)] = struct{ c1, c2 uint8 }{idx, idx + 1}
-				mapping[uint8(c2<<4|c1)] = struct{ c1, c2 uint8 }{idx + 1, idx}
+				pal = append(append(pal, m1), m2)
+				mapping[uint8(c1<<4|c2)] = struct{ c1, c2 uint8 }{idx + 1, idx}
+				mapping[uint8(c2<<4|c1)] = struct{ c1, c2 uint8 }{idx, idx + 1}
 			} else {
 				m1 := rgbMix(pal[c1], pal[c2], 0.5)
 				idx := uint8(len(pal))

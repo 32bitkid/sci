@@ -300,13 +300,9 @@ func readPic(
 		debugFn: debugFn,
 	}
 
-	for y := 0; y < 190; y++ {
-		for x := 0; x < 320; x++ {
-			state.Visual.SetColorIndex(x, y, 0xF)
-			state.Priority.SetColorIndex(x, y, 0x0)
-			state.Control.SetColorIndex(x, y, 0x0)
-		}
-	}
+	state.Visual.Clear(0xF)
+	state.Control.Clear(0x0)
+	state.Priority.Clear(0x0)
 
 opLoop:
 	for {
@@ -324,8 +320,7 @@ opLoop:
 
 			pal := code / 40
 			index := code % 40
-			color := state.palettes[pal][index]
-			state.color = color
+			state.color = state.palettes[pal][index]
 			state.drawMode.Set(picDrawVisual, true)
 		case pOpDisableVisual:
 			state.drawMode.Set(picDrawVisual, false)
