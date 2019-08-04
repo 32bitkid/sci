@@ -11,7 +11,13 @@ import (
 	"github.com/32bitkid/sci/screen"
 )
 
-func NewPic(b []byte, options ...PicOptions) (*image.Paletted, error) {
+type Pic struct {
+	Visual   *image.Paletted
+	Priority *image.Paletted
+	Control  *image.Paletted
+}
+
+func NewPic(b []byte, options ...PicOptions) (Pic, error) {
 	var debugFn DebugCallback
 	ditherer := screen.EGADitherer
 	for _, opts := range options {
@@ -186,8 +192,14 @@ var defaultPalette = picPalette{
 
 type picDrawMode uint
 
-func (mode *picDrawMode) Set(flag picDrawMode, value bool) {
-	if value {
+const (
+	picDrawVisual   picDrawMode = 1
+	picDrawPriority             = 2
+	picDrawControl              = 4
+)
+
+func (mode *picDrawMode) Set(flag picDrawMode, enabled bool) {
+	if enabled {
 		*mode |= flag
 	} else {
 		*mode &= ^flag
@@ -198,17 +210,8 @@ func (mode picDrawMode) Has(flag picDrawMode) bool {
 	return mode&flag == flag
 }
 
-const (
-	picDrawVisual   picDrawMode = 1
-	picDrawPriority             = 2
-	picDrawControl              = 4
-)
-
 type PicState struct {
-	Visual   *image.Paletted
-	Priority *image.Paletted
-	Control  *image.Paletted
-	AUX      *image.Paletted
+	Pic
 
 	palettes [4]picPalette
 	drawMode picDrawMode
@@ -220,8 +223,7 @@ type PicState struct {
 	patternCode    uint8
 	patternTexture uint8
 
-	ditherer *screen.Ditherer
-
+	ditherer  *screen.Ditherer
 	debugFn   DebugCallback
 	fillStack []point
 }
@@ -235,8 +237,9 @@ func (s *PicState) debugger() {
 func (s *PicState) fill(cx, cy int) {
 	switch {
 	case s.drawMode.Has(picDrawVisual):
-		// TODO this doesn't seem like it should happen. either legalColor shouldn't be 15 or color shouldn't be 15/15
 		if s.color == 255 {
+			// FIXME this fill occurs but it doesn't make any sense.
+			//  It's asking for a solid white fill, but that should be a noop if legalColor is always 15.
 			return
 		}
 		c1, c2 := s.ditherer.Get(s.color)
@@ -304,18 +307,21 @@ func readPic(
 	payload []byte,
 	ditherer *screen.Ditherer,
 	debugFn DebugCallback,
-) (*image.Paletted, error) {
+) (Pic, error) {
 	r := picReader{
 		bitreader.NewReader(bufio.NewReader(bytes.NewReader(payload))),
 	}
 
+	bounds := image.Rect(0, 0, 320, 190)
+
 	var state = PicState{
-		Visual:   image.NewPaletted(image.Rect(0, 0, 320, 190), ditherer.Palette),
-		Priority: image.NewPaletted(image.Rect(0, 0, 320, 190), screen.Depth16Palette),
-		Control:  image.NewPaletted(image.Rect(0, 0, 320, 190), screen.EGAPalette),
-		AUX:      image.NewPaletted(image.Rect(0, 0, 320, 190), screen.Depth16Palette),
+		Pic: Pic{
+			Visual:   image.NewPaletted(bounds, ditherer.Palette),
+			Priority: image.NewPaletted(bounds, screen.Depth16Palette),
+			Control:  image.NewPaletted(bounds, screen.EGAPalette),
+		},
 		drawMode: picDrawVisual | picDrawPriority,
-		palettes: [...]picPalette{
+		palettes: [4]picPalette{
 			defaultPalette,
 			defaultPalette,
 			defaultPalette,
@@ -327,21 +333,23 @@ func readPic(
 	}
 
 	for i := 0; i < (320 * 190); i++ {
-		state.Visual.Pix[i] = 0xf
+		state.Visual.Pix[i] = 0xF
+		state.Priority.Pix[i] = 0x0
+		state.Control.Pix[i] = 0x0
 	}
 
 opLoop:
 	for {
 		op, err := r.bits.Read8(8)
 		if err != nil {
-			return nil, err
+			return Pic{}, err
 		}
 
 		switch pOpCode(op) {
 		case pOpSetColor:
 			code, err := r.bits.Read8(8)
 			if err != nil {
-				return nil, err
+				return Pic{}, err
 			}
 
 			pal := code / 40
@@ -355,7 +363,7 @@ opLoop:
 		case pOpSetPriority:
 			code, err := r.bits.Read8(8)
 			if err != nil {
-				return nil, err
+				return Pic{}, err
 			}
 			state.priorityCode = code & 0xF
 			state.drawMode.Set(picDrawPriority, true)
@@ -365,28 +373,29 @@ opLoop:
 		case pOpSetControl:
 			code, err := r.bits.Read8(8)
 			if err != nil {
-				return nil, err
+				return Pic{}, err
 			}
 			state.controlCode = code & 0xf
 			state.drawMode.Set(picDrawControl, true)
 		case pOpDisableControl:
 			state.drawMode.Set(picDrawControl, false)
 
+		// Lines
 		case pOpShortLines:
 			x1, y1, err := r.getAbsCoords()
 			if err != nil {
-				return nil, err
+				return Pic{}, err
 			}
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
-					return nil, err
+					return Pic{}, err
 				} else if peek >= 0xf0 {
 					break
 				}
 
 				x2, y2, err := r.getRelCoords1(x1, y1)
 				if err != nil {
-					return nil, err
+					return Pic{}, err
 				}
 
 				state.line(x1, y1, x2, y2)
@@ -395,18 +404,18 @@ opLoop:
 		case pOpMediumLines:
 			x1, y1, err := r.getAbsCoords()
 			if err != nil {
-				return nil, err
+				return Pic{}, err
 			}
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
-					return nil, err
+					return Pic{}, err
 				} else if peek >= 0xf0 {
 					break
 				}
 
 				x2, y2, err := r.getRelCoords2(x1, y1)
 				if err != nil {
-					return nil, err
+					return Pic{}, err
 				}
 
 				state.line(x1, y1, x2, y2)
@@ -415,64 +424,66 @@ opLoop:
 		case pOpLongLines:
 			x1, y1, err := r.getAbsCoords()
 			if err != nil {
-				return nil, err
+				return Pic{}, err
 			}
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
-					return nil, err
+					return Pic{}, err
 				} else if peek >= 0xf0 {
 					break
 				}
 
 				x2, y2, err := r.getAbsCoords()
 				if err != nil {
-					return nil, err
+					return Pic{}, err
 				}
 
 				state.line(x1, y1, x2, y2)
 				x1, y1 = x2, y2
 			}
 
+		// Fills
 		case pOpFill:
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
-					return nil, err
+					return Pic{}, err
 				} else if peek >= 0xf0 {
 					break
 				}
 
 				x, y, err := r.getAbsCoords()
 				if err != nil {
-					return nil, err
+					return Pic{}, err
 				}
 
 				state.fill(x, y)
 			}
 
+		// Patterns
 		case pOpSetPattern:
 			code, err := r.bits.Read8(8)
 			if err != nil {
-				return nil, err
+				return Pic{}, err
 			}
 			state.patternCode = code & 0x3f
 		case pOpShortPatterns:
 			if state.patternCode&0x20 != 0 {
 				texture, err := r.bits.Read8(8)
 				if err != nil {
-					return nil, err
+					return Pic{}, err
 				}
 				state.patternTexture = texture >> 1
 			}
 
 			x, y, err := r.getAbsCoords()
 			if err != nil {
-				return nil, err
+				return Pic{}, err
 			}
 			state.drawPattern(x, y)
 
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
-					return nil, err
+					return Pic{}, err
 				} else if peek >= 0xf0 {
 					break
 				}
@@ -480,14 +491,14 @@ opLoop:
 				if state.patternCode&0x20 != 0 {
 					texture, err := r.bits.Read8(8)
 					if err != nil {
-						return nil, err
+						return Pic{}, err
 					}
 					state.patternTexture = texture >> 1
 				}
 
 				x, y, err = r.getRelCoords1(x, y)
 				if err != nil {
-					return nil, err
+					return Pic{}, err
 				}
 				state.drawPattern(x, y)
 			}
@@ -495,20 +506,20 @@ opLoop:
 			if state.patternCode&0x20 != 0 {
 				texture, err := r.bits.Read8(8)
 				if err != nil {
-					return nil, err
+					return Pic{}, err
 				}
 				state.patternTexture = texture >> 1
 			}
 
 			x, y, err := r.getAbsCoords()
 			if err != nil {
-				return nil, err
+				return Pic{}, err
 			}
 			state.drawPattern(x, y)
 
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
-					return nil, err
+					return Pic{}, err
 				} else if peek >= 0xf0 {
 					break
 				}
@@ -516,21 +527,21 @@ opLoop:
 				if state.patternCode&0x20 != 0 {
 					texture, err := r.bits.Read8(8)
 					if err != nil {
-						return nil, err
+						return Pic{}, err
 					}
 					state.patternTexture = texture >> 1
 				}
 
 				x, y, err = r.getRelCoords2(x, y)
 				if err != nil {
-					return nil, err
+					return Pic{}, err
 				}
 				state.drawPattern(x, y)
 			}
 		case pOpAbsolutePatterns:
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
-					return nil, err
+					return Pic{}, err
 				} else if peek >= 0xf0 {
 					break
 				}
@@ -538,88 +549,88 @@ opLoop:
 				if state.patternCode&0x20 != 0 {
 					texture, err := r.bits.Read8(8)
 					if err != nil {
-						return nil, err
+						return Pic{}, err
 					}
 					state.patternTexture = texture >> 1
 				}
 
 				x, y, err := r.getAbsCoords()
 				if err != nil {
-					return nil, err
+					return Pic{}, err
 				}
 				state.drawPattern(x, y)
 			}
 
+		// Extensions
 		case pOpOPX:
 			opx, err := r.bits.Read8(8)
 			if err != nil {
-				return nil, err
+				return Pic{}, err
 			}
 			switch pOpxCode(opx) {
 			case pOpxUpdatePaletteEntries:
 				for {
 					if peek, err := r.bits.Peek8(8); err != nil {
-						return nil, err
+						return Pic{}, err
 					} else if peek >= 0xf0 {
 						break
 					}
 
 					index, err := r.bits.Read8(8)
 					if err != nil {
-						return nil, err
+						return Pic{}, err
 					}
 
 					color, err := r.bits.Read8(8)
 					if err != nil {
-						return nil, err
+						return Pic{}, err
 					}
 					state.palettes[index/40][index%40] = color
 				}
 
 			case pOpxSetPalette:
-				var pal struct {
-					I uint8
-					P picPalette
-				}
-				err := binary.Read(r.bits, binary.LittleEndian, &pal)
+				i, err := r.bits.Read8(8)
 				if err != nil {
-					return nil, err
+					return Pic{}, err
 				}
-				state.palettes[pal.I] = pal.P
+				err = binary.Read(r.bits, binary.LittleEndian, &state.palettes[i])
+				if err != nil {
+					return Pic{}, err
+				}
 			case pOpxCode(0x02):
+				// TODO this looks like a palette, but not sure what its supposed to be used for...
 				var pal struct {
 					I uint8
 					P picPalette
 				}
 				err := binary.Read(r.bits, binary.LittleEndian, &pal)
 				if err != nil {
-					return nil, err
+					return Pic{}, err
 				}
-				// TODO this looks like a palette, but not sure what its supposed to be used for...
 				// state.palettes[pal.I] = pal.P
 			case pOpxCode(0x03), pOpxCode(0x05):
-				// not sure what this byte is for...
+				// TODO not sure what this byte is for...
 				if err := r.bits.Skip(8); err != nil {
-					return nil, err
+					return Pic{}, err
 				}
 			case pOpxCode(0x04), pOpxCode(0x06):
-				// TODO not sure what this OP is for
+				// TODO not sure what this OP is for, but it appears to have no payload
 			case pOpxCode(0x07):
 				// TODO not sure what this is for (QfG2 uses this op-code)
 				// Vector?
 				if err := r.bits.Skip(24); err != nil {
-					return nil, err
+					return Pic{}, err
 				}
 
 				var length uint16
 				if err := binary.Read(r.bits, binary.LittleEndian, &length); err != nil {
-					return nil, err
+					return Pic{}, err
 				}
 
 				// Payload?
 				for i := uint(0); i < uint(length); i++ {
 					if err := r.bits.Skip(8); err != nil {
-						return nil, err
+						return Pic{}, err
 					}
 				}
 
@@ -627,25 +638,27 @@ opLoop:
 				// TODO not sure what this is for (KQ1-sci0 remake uses this op-code)
 				for {
 					if peek, err := r.bits.Peek8(8); err != nil {
-						return nil, err
+						return Pic{}, err
 					} else if peek >= 0xf0 {
 						break
 					}
 					if err := r.bits.Skip(8); err != nil {
-						return nil, err
+						return Pic{}, err
 					}
 				}
 			default:
-				return nil, fmt.Errorf("unhandled opx 0x%02x", opx)
+				return Pic{}, fmt.Errorf("unhandled OPX 0x%02x", opx)
 			}
+
 		case pOpDone:
 			break opLoop
 		default:
-			return nil, fmt.Errorf("unhandled op 0x%02x", op)
+			return Pic{}, fmt.Errorf("unhandled OP 0x%02x", op)
 		}
 
 	}
-	return state.Visual, nil
+
+	return state.Pic, nil
 }
 
 type point struct{ x, y int }
@@ -793,6 +806,7 @@ func swapIf(a, b *int, cond bool) {
 		*a, *b = *b, *a
 	}
 }
+
 func clip(v *int, min, max int) {
 	switch {
 	case *v < min:
