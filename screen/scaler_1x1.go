@@ -135,13 +135,13 @@ func (buf *buffer1x1) Line(x1, y1, x2, y2 int, color uint8) {
 func (buf *buffer1x1) Pattern(cx, cy, size int, isRect, isSolid bool, seed uint8, color uint8) {
 	patternIndex := vectorPatternTextureOffset[seed]
 	if isRect {
-		for y := -size; y <= size; y++ {
+		for y := -size; y < size+1; y++ {
 			if cy+y < 0 || cy+y >= 190 {
 				continue
 			}
 
 			offset := (cy + y) * buf.Stride
-			for x := -size; x <= size+1; x++ {
+			for x := -size; x < size+2; x++ {
 				if cx+x < 0 || cx+x >= 320 {
 					continue
 				}
@@ -153,14 +153,14 @@ func (buf *buffer1x1) Pattern(cx, cy, size int, isRect, isSolid bool, seed uint8
 		}
 	} else {
 		r2 := size * size
-		for y := -size; y <= size; y++ {
+		for y := -size; y < size + 1; y++ {
 			if cy+y < 0 || cy+y >= 190 {
 				continue
 			}
 
 			offset := (cy + y) * buf.Stride
 			sx := sqrts[r2-y*y]
-			for x := -sx; x <= sx; x++ {
+			for x := -sx; x < sx + 1; x++ {
 				if cx+x < 0 || cx+x >= 320 {
 					continue
 				}
@@ -259,14 +259,15 @@ func (buf *buffer1x1) Fill(cx, cy int, legalColor uint8, color uint8) {
 type point struct{ x, y int }
 
 // (0..(7*7)) => i => int(math.Round(math.Sqrt(float64(i))))
-var sqrts = [50]int{
-	0, 1, 1, 2, 2, 2, 2,
-	3, 3, 3, 3, 3, 3, 4,
-	4, 4, 4, 4, 4, 4, 4,
-	5, 5, 5, 5, 5, 5, 5,
-	5, 5, 5, 6, 6, 6, 6,
-	6, 6, 6, 6, 6, 6, 6,
-	6, 7, 7, 7, 7, 7, 7,
+var sqrts = [...]int{
+	0, 1, 1, 2, 2, 2, 2, 3,
+	3, 3, 3, 3, 3, 4, 4, 4,
+	4, 4, 4, 4, 4, 5, 5, 5,
+	5, 5, 5, 5, 5, 5, 5, 6,
+	6, 6, 6, 6, 6, 6, 6, 6,
+	6, 6, 6, 7, 7, 7, 7, 7,
+	7, 7, 7, 7, 7, 7, 7, 7,
+	7, 8, 8, 8, 8, 8, 8, 8,
 }
 
 func absInt(v int) int {
