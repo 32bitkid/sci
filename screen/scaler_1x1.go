@@ -136,36 +136,42 @@ func (buf *buffer1x1) Pattern(cx, cy, size int, isRect, isSolid bool, seed uint8
 	patternIndex := vectorPatternTextureOffset[seed]
 	if isRect {
 		for y := -size; y < size+1; y++ {
-			if cy+y < 0 || cy+y >= 190 {
+			py := cy + y
+			if py < 0 || py >= 190 {
 				continue
 			}
 
-			offset := (cy + y) * buf.Stride
+			offset := py * buf.Stride
 			for x := -size; x < size+2; x++ {
-				if cx+x < 0 || cx+x >= 320 {
+				px := cx + x
+				if px < 0 || px >= 320 {
 					continue
 				}
-				if isSolid || vectorPatternTextures[patternIndex%len(vectorPatternTextures)] {
-					buf.Pix[offset+cx+x] = buf.dither(cx+x, y, color)
+				fill := isSolid || vectorPatternTextures[patternIndex%len(vectorPatternTextures)]
+				if fill {
+					buf.Pix[offset+px] = buf.dither(px, py, color)
 				}
 				patternIndex++
 			}
 		}
 	} else {
-		r2 := size * size
-		for y := -size; y < size + 1; y++ {
-			if cy+y < 0 || cy+y >= 190 {
+		bitmap := circleBitmaps[size]
+		top, left := cy-size, cx-size
+		for y, row := range bitmap {
+			py := top + y
+			if py < 0 || py >= 190 {
 				continue
 			}
 
-			offset := (cy + y) * buf.Stride
-			sx := sqrts[r2-y*y]
-			for x := -sx; x < sx + 1; x++ {
-				if cx+x < 0 || cx+x >= 320 {
+			offset := py * buf.Stride
+			for x, pixel := range row {
+				px := left + x
+				if px < 0 || px >= 320 {
 					continue
 				}
-				if isSolid || vectorPatternTextures[patternIndex%len(vectorPatternTextures)] {
-					buf.Pix[offset+cx+x] = buf.dither(cx+x, y, color)
+				fill := isSolid || vectorPatternTextures[patternIndex%len(vectorPatternTextures)]
+				if pixel && fill {
+					buf.Pix[offset+px] = buf.dither(px, py, color)
 				}
 				patternIndex++
 			}
@@ -257,18 +263,6 @@ func (buf *buffer1x1) Fill(cx, cy int, legalColor uint8, color uint8) {
 }
 
 type point struct{ x, y int }
-
-// (0..(7*7)) => i => int(math.Round(math.Sqrt(float64(i))))
-var sqrts = [...]int{
-	0, 1, 1, 2, 2, 2, 2, 3,
-	3, 3, 3, 3, 3, 4, 4, 4,
-	4, 4, 4, 4, 4, 5, 5, 5,
-	5, 5, 5, 5, 5, 5, 5, 6,
-	6, 6, 6, 6, 6, 6, 6, 6,
-	6, 6, 6, 7, 7, 7, 7, 7,
-	7, 7, 7, 7, 7, 7, 7, 7,
-	7, 8, 8, 8, 8, 8, 8, 8,
-}
 
 func absInt(v int) int {
 	if v < 0 {
