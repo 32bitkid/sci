@@ -8,7 +8,7 @@ package screen
 
 /* Found at https://github.com/wjp/freesci-archive/blob/master/src/gfx/resource/sci_pic_0.c */
 /* 'Random' fill patterns, provided by Carl Muckenhoupt: */
-var vectorPatternTextures = [...]bool{
+var noise = [...]bool{
 	false, false, true, false, false, false, false, false,
 	true, false, false, true, false, true, false, false,
 	false, false, false, false, false, false, true, false,

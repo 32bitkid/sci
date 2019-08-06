@@ -147,7 +147,7 @@ func (buf *buffer1x1) Pattern(cx, cy, size int, isRect, isSolid bool, seed uint8
 				if px < 0 || px >= 320 {
 					continue
 				}
-				fill := isSolid || vectorPatternTextures[patternIndex%len(vectorPatternTextures)]
+				fill := isSolid || noise[patternIndex%len(noise)]
 				if fill {
 					buf.Pix[offset+px] = buf.dither(px, py, color)
 				}
@@ -169,7 +169,7 @@ func (buf *buffer1x1) Pattern(cx, cy, size int, isRect, isSolid bool, seed uint8
 				if px < 0 || px >= 320 {
 					continue
 				}
-				fill := isSolid || vectorPatternTextures[patternIndex%len(vectorPatternTextures)]
+				fill := isSolid || noise[patternIndex%len(noise)]
 				if pixel && fill {
 					buf.Pix[offset+px] = buf.dither(px, py, color)
 				}
