@@ -133,47 +133,42 @@ func (buf *buffer1x1) Line(x1, y1, x2, y2 int, color uint8) {
 }
 
 func (buf *buffer1x1) Pattern(cx, cy, size int, isRect, isSolid bool, seed uint8, color uint8) {
-	patternIndex := vectorPatternTextureOffset[seed]
-	if isRect {
-		for y := -size; y < size+1; y++ {
-			py := cy + y
-			if py < 0 || py >= 190 {
-				continue
-			}
+	noiseIndex := noiseOffsets[seed]
+	width := size*2 + 2
+	height := size*2 + 1
 
+	left, top :=
+		clampInt(0, 320-width, cx-size),
+		clampInt(0, 190-height, cy-size)
+
+	if isRect {
+		right, bottom := left+width, top+height
+
+		for py := top; py < bottom; py++ {
 			offset := py * buf.Stride
-			for x := -size; x < size+2; x++ {
-				px := cx + x
-				if px < 0 || px >= 320 {
-					continue
-				}
-				fill := isSolid || noise[patternIndex%len(noise)]
+			for px := left; px < right; px++ {
+				fill := isSolid || noise[noiseIndex%len(noise)]
 				if fill {
 					buf.Pix[offset+px] = buf.dither(px, py, color)
 				}
-				patternIndex++
+				noiseIndex++
 			}
 		}
 	} else {
 		bitmap := circleBitmaps[size]
-		top, left := cy-size, cx-size
 		for y, row := range bitmap {
 			py := top + y
-			if py < 0 || py >= 190 {
-				continue
-			}
 
 			offset := py * buf.Stride
 			for x, pixel := range row {
 				px := left + x
-				if px < 0 || px >= 320 {
-					continue
+				if pixel {
+					fill := isSolid || noise[noiseIndex%len(noise)]
+					if fill {
+						buf.Pix[offset+px] = buf.dither(px, py, color)
+					}
+					noiseIndex++
 				}
-				fill := isSolid || noise[patternIndex%len(noise)]
-				if pixel && fill {
-					buf.Pix[offset+px] = buf.dither(px, py, color)
-				}
-				patternIndex++
 			}
 		}
 	}
@@ -263,6 +258,17 @@ func (buf *buffer1x1) Fill(cx, cy int, legalColor uint8, color uint8) {
 }
 
 type point struct{ x, y int }
+
+func clampInt(min, max, i int) int {
+	switch {
+	case i < min:
+		return min
+	case i > max:
+		return max
+	default:
+		return i
+	}
+}
 
 func absInt(v int) int {
 	if v < 0 {
