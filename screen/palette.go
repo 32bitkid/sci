@@ -46,43 +46,43 @@ var Depth16Palette = color.Palette{
 }
 
 var EGAPalette = color.Palette{
-	rgb24Color{0x000000},
-	rgb24Color{0x0000AA},
-	rgb24Color{0x00AA00},
-	rgb24Color{0x00AAAA},
-	rgb24Color{0xAA0000},
-	rgb24Color{0xAA00AA},
-	rgb24Color{0xAA5500},
-	rgb24Color{0xAAAAAA},
+	rgb24Color(0x000000),
+	rgb24Color(0x0000AA),
+	rgb24Color(0x00AA00),
+	rgb24Color(0x00AAAA),
+	rgb24Color(0xAA0000),
+	rgb24Color(0xAA00AA),
+	rgb24Color(0xAA5500),
+	rgb24Color(0xAAAAAA),
 
-	rgb24Color{0x555555},
-	rgb24Color{0x5555FF},
-	rgb24Color{0x55FF55},
-	rgb24Color{0x55FFFF},
-	rgb24Color{0xFF5555},
-	rgb24Color{0xFF55FF},
-	rgb24Color{0xFFFF55},
-	rgb24Color{0xFFFFFF},
+	rgb24Color(0x555555),
+	rgb24Color(0x5555FF),
+	rgb24Color(0x55FF55),
+	rgb24Color(0x55FFFF),
+	rgb24Color(0xFF5555),
+	rgb24Color(0xFF55FF),
+	rgb24Color(0xFFFF55),
+	rgb24Color(0xFFFFFF),
 }
 
 var DB32EGAPalette = color.Palette{
-	rgb24Color{0x000000},
-	rgb24Color{0x3f3f74},
-	rgb24Color{0x4b692f},
-	rgb24Color{0x306082},
-	rgb24Color{0xac3232},
-	rgb24Color{0x45283c},
-	rgb24Color{0x8f563b},
-	rgb24Color{0x847e87},
+	rgb24Color(0x000000),
+	rgb24Color(0x3f3f74),
+	rgb24Color(0x4b692f),
+	rgb24Color(0x306082),
+	rgb24Color(0xac3232),
+	rgb24Color(0x45283c),
+	rgb24Color(0x8f563b),
+	rgb24Color(0x847e87),
 
-	rgb24Color{0x323c39},
-	rgb24Color{0x639bff},
-	rgb24Color{0x6abe30},
-	rgb24Color{0x5fcde4},
-	rgb24Color{0xd95763},
-	rgb24Color{0xd77bba},
-	rgb24Color{0xfbf236},
-	rgb24Color{0xffffff},
+	rgb24Color(0x323c39),
+	rgb24Color(0x639bff),
+	rgb24Color(0x6abe30),
+	rgb24Color(0x5fcde4),
+	rgb24Color(0xd95763),
+	rgb24Color(0xd77bba),
+	rgb24Color(0xfbf236),
+	rgb24Color(0xffffff),
 }
 
 var EGADitherer = &Ditherer{
@@ -95,41 +95,41 @@ var DB32EGADitherer = &Ditherer{
 
 var ExtendedDitherer = &Ditherer{
 	Palette: color.Palette{
-		0x00: rgb24Color{0x000000}, // black
-		0x01: rgb24Color{0x3f3f74}, // deep-koamaru
-		0x02: rgb24Color{0x4b692f}, // dell
-		0x03: rgb24Color{0x306082}, // venice-blue
-		0x04: rgb24Color{0xac3232}, // brown
-		0x05: rgb24Color{0x76428a}, // clairvoyant
-		0x06: rgb24Color{0x8f563b}, // rope
-		0x07: rgb24Color{0x847e87}, // topaz
+		0x00: rgb24Color(0x000000), // black
+		0x01: rgb24Color(0x3f3f74), // deep-koamaru
+		0x02: rgb24Color(0x4b692f), // dell
+		0x03: rgb24Color(0x306082), // venice-blue
+		0x04: rgb24Color(0xac3232), // brown
+		0x05: rgb24Color(0x76428a), // clairvoyant
+		0x06: rgb24Color(0x8f563b), // rope
+		0x07: rgb24Color(0x847e87), // topaz
 
-		0x08: rgb24Color{0x323c39}, // opal
-		0x09: rgb24Color{0x639bff}, // cornflower
-		0x0a: rgb24Color{0x6abe30}, // christi
-		0x0b: rgb24Color{0x5fcde4}, // viking
-		0x0c: rgb24Color{0xd95763}, // mandy
-		0x0d: rgb24Color{0xd77bba}, // plum
-		0x0e: rgb24Color{0xfbf236}, // golden-fizz
-		0x0f: rgb24Color{0xffffff}, // white
+		0x08: rgb24Color(0x323c39), // opal
+		0x09: rgb24Color(0x639bff), // cornflower
+		0x0a: rgb24Color(0x6abe30), // christi
+		0x0b: rgb24Color(0x5fcde4), // viking
+		0x0c: rgb24Color(0xd95763), // mandy
+		0x0d: rgb24Color(0xd77bba), // plum
+		0x0e: rgb24Color(0xfbf236), // golden-fizz
+		0x0f: rgb24Color(0xffffff), // white
 
-		0x10: rgb24Color{0x222034}, // valhalla
-		0x11: rgb24Color{0x524b24}, // verdigris
-		0x12: rgb24Color{0x183041}, // ???
-		0x13: rgb24Color{0x45283c}, // loulou
-		0x14: rgb24Color{0x663931}, // oiled-cedar
-		0x15: rgb24Color{0x595652}, // smokey-ash
-		0x16: rgb24Color{0xd9a066}, // twine
-		0x17: rgb24Color{0x9badb7}, // heather
+		0x10: rgb24Color(0x222034), // valhalla
+		0x11: rgb24Color(0x524b24), // verdigris
+		0x12: rgb24Color(0x183041), // ???
+		0x13: rgb24Color(0x45283c), // loulou
+		0x14: rgb24Color(0x663931), // oiled-cedar
+		0x15: rgb24Color(0x595652), // smokey-ash
+		0x16: rgb24Color(0xd9a066), // twine
+		0x17: rgb24Color(0x9badb7), // heather
 
-		0x18: rgb24Color{0x5b6ee1}, // royal blue
-		0x19: rgb24Color{0xcbdbfc}, // light-steel-blue
-		0x1a: rgb24Color{0x8f974a}, // rainforest
-		0x1b: rgb24Color{0x99e550}, // atlantis
-		0x1c: rgb24Color{0xdf7126}, // tahiti-gold
-		0x1d: rgb24Color{0x8a6f30}, // stinger
-		0x1e: rgb24Color{0xeec39a}, // pancho
-		0x1f: rgb24Color{0x696a6a}, // dim-gray
+		0x18: rgb24Color(0x5b6ee1), // royal blue
+		0x19: rgb24Color(0xcbdbfc), // light-steel-blue
+		0x1a: rgb24Color(0x8f974a), // rainforest
+		0x1b: rgb24Color(0x99e550), // atlantis
+		0x1c: rgb24Color(0xdf7126), // tahiti-gold
+		0x1d: rgb24Color(0x8a6f30), // stinger
+		0x1e: rgb24Color(0xeec39a), // pancho
+		0x1f: rgb24Color(0x696a6a), // dim-gray
 
 		// Mixes
 		0x20: rgbMix(DB32EGAPalette[0xc], DB32EGAPalette[0xe], 1.0/3.0),
@@ -143,7 +143,7 @@ var ExtendedDitherer = &Ditherer{
 		0x28: rgbMix(DB32EGAPalette[0xc], DB32EGAPalette[0x8], 2.0/3.0),
 		0x29: rgbMix(DB32EGAPalette[0x6], DB32EGAPalette[0xc], 1.0/3.0),
 		0x2a: rgbMix(DB32EGAPalette[0x6], DB32EGAPalette[0xc], 2.0/3.0),
-		0x2b: rgbMix(rgb24Color{0x9badb7}, DB32EGAPalette[0xf], 1.5/3.0),
+		0x2b: rgbMix(rgb24Color(0x9badb7), DB32EGAPalette[0xf], 1.5/3.0),
 		0x2c: rgbMix(DB32EGAPalette[0x8], DB32EGAPalette[0x9], 1.0/3.0),
 		0x2d: rgbMix(DB32EGAPalette[0x8], DB32EGAPalette[0x9], 2.0/3.0),
 		0x2e: rgbMix(DB32EGAPalette[0x0], DB32EGAPalette[0x4], 1.0/3.0),
@@ -151,7 +151,7 @@ var ExtendedDitherer = &Ditherer{
 
 		0x30: rgbMix(DB32EGAPalette[0x4], DB32EGAPalette[0xc], 1.0/3.0),
 		0x31: rgbMix(DB32EGAPalette[0x4], DB32EGAPalette[0xc], 2.0/3.0),
-		0x32: rgb24Color{0xcd69ca},
+		0x32: rgb24Color(0xcd69ca),
 		0x33: rgbMix(DB32EGAPalette[0xb], DB32EGAPalette[0xf], 1.0/3.0),
 		0x34: rgbMix(DB32EGAPalette[0xb], DB32EGAPalette[0xf], 2.0/3.0),
 		0x35: rgbMix(DB32EGAPalette[0x3], DB32EGAPalette[0xb], 1.25/3.0),
@@ -159,8 +159,8 @@ var ExtendedDitherer = &Ditherer{
 		0x37: rgbMix(DB32EGAPalette[0x2], DB32EGAPalette[0xb], 1.0/3.0),
 		0x38: rgbMix(DB32EGAPalette[0x2], DB32EGAPalette[0x8], 1.5/3.0),
 		0x39: rgbMix(DB32EGAPalette[0xd], DB32EGAPalette[0xf], 1.5/3.0),
-		0x3a: rgbMix(rgb24Color{0xeec39a}, DB32EGAPalette[0xe], 1.5/3.0),
-		0x3b: rgbMix(DB32EGAPalette[0x8], rgb24Color{0x524b24}, 1.5/3.0),
+		0x3a: rgbMix(rgb24Color(0xeec39a), DB32EGAPalette[0xe], 1.5/3.0),
+		0x3b: rgbMix(DB32EGAPalette[0x8], rgb24Color(0x524b24), 1.5/3.0),
 		0x3c: rgbMix(DB32EGAPalette[0x0], DB32EGAPalette[0xa], 1.0/3.0),
 		0x3d: rgbMix(DB32EGAPalette[0x5], DB32EGAPalette[0x9], 2.0/3.0),
 		0x3e: rgbMix(DB32EGAPalette[0x8], DB32EGAPalette[0xa], 1.25/3.0),
@@ -173,7 +173,7 @@ var ExtendedDitherer = &Ditherer{
 		0x44: rgbMix(DB32EGAPalette[0xb], DB32EGAPalette[0xd], 0.75/3.0),
 		0x45: rgbMix(DB32EGAPalette[0xb], DB32EGAPalette[0xd], 1.75/3.0),
 		0x46: rgbMix(DB32EGAPalette[0x4], DB32EGAPalette[0x7], 1.5/3.0),
-		0x47: rgbMix(rgb24Color{0x9badb7}, DB32EGAPalette[0xc], 1.75/3.0),
+		0x47: rgbMix(rgb24Color(0x9badb7), DB32EGAPalette[0xc], 1.75/3.0),
 		0x48: rgbMix(DB32EGAPalette[0x8], DB32EGAPalette[0xb], 1.25/3.0),
 		0x49: rgbMix(DB32EGAPalette[0x8], DB32EGAPalette[0xb], 1.75/3.0),
 		0x4a: rgbMix(DB32EGAPalette[0x6], DB32EGAPalette[0x7], 1.0/3.0),
@@ -181,7 +181,7 @@ var ExtendedDitherer = &Ditherer{
 		0x4c: rgbMix(DB32EGAPalette[0x6], DB32EGAPalette[0xe], 2.0/3.0),
 		0x4d: rgbMix(DB32EGAPalette[0x3], DB32EGAPalette[0xd], 1.25/3.0),
 		0x4e: rgbMix(DB32EGAPalette[0x3], DB32EGAPalette[0xd], 1.75/3.0),
-		0x4f: rgbMix(rgb24Color{0x5b6ee1}, DB32EGAPalette[0xb], 2.25/3.0),
+		0x4f: rgbMix(rgb24Color(0x5b6ee1), DB32EGAPalette[0xb], 2.25/3.0),
 	},
 	ColorMapping: ColorMapping{
 		0x01: {0x10, 0x10}, 0x10: {0x10, 0x10},

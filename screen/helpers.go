@@ -17,14 +17,14 @@ func rgbMix(c1, c2 color.Color, t float64) color.Color {
 	}
 }
 
-type rgb24Color struct {
-	RGB uint32
-}
+type rgb24Color uint32
 
-func (ega rgb24Color) RGBA() (r, g, b, a uint32) {
-	r = uint32(ega.RGB>>16&0xFF) * 0xFFFF / 0xFF
-	g = uint32(ega.RGB>>8&0xFF) * 0xFFFF / 0xFF
-	b = uint32(ega.RGB>>0&0xFF) * 0xFFFF / 0xFF
+func (rgb24 rgb24Color) RGBA() (r, g, b, a uint32) {
+	rb, gb, bb := (rgb24>>16)&0xFF, (rgb24>>8)&0xFF, (rgb24>>0)&0xFF
+
+	r = uint32((rb << 8) | rb)
+	g = uint32((gb << 8) | gb)
+	b = uint32((bb << 8) | bb)
 	a = 0xFFFF
 	return
 }
