@@ -184,7 +184,7 @@ const (
 	picDrawControl              = 4
 )
 
-func (mode *picDrawMode) Set(flag picDrawMode, enabled bool) {
+func (mode *picDrawMode) set(flag picDrawMode, enabled bool) {
 	if enabled {
 		*mode |= flag
 	} else {
@@ -192,7 +192,7 @@ func (mode *picDrawMode) Set(flag picDrawMode, enabled bool) {
 	}
 }
 
-func (mode picDrawMode) Has(flag picDrawMode) bool {
+func (mode picDrawMode) has(flag picDrawMode) bool {
 	return mode&flag == flag
 }
 
@@ -220,7 +220,7 @@ func (s *PicState) debugger() {
 
 func (s *PicState) fill(cx, cy int) {
 	switch {
-	case s.drawMode.Has(picDrawVisual):
+	case s.drawMode.has(picDrawVisual):
 		if s.color == 255 {
 			// FIXME this fill occurs but it doesn't make any sense.
 			//  It's asking for a solid white fill, but that should be a noop if legalColor is always 15.
@@ -228,12 +228,12 @@ func (s *PicState) fill(cx, cy int) {
 		}
 		s.Visual.Fill(cx, cy, 0xf, s.color)
 		s.debugger()
-	case s.drawMode.Has(picDrawPriority):
+	case s.drawMode.has(picDrawPriority):
 		if s.priorityCode == 0 {
 			return
 		}
 		s.Priority.Fill(cx, cy, 0x0, s.priorityCode)
-	case s.drawMode.Has(picDrawControl):
+	case s.drawMode.has(picDrawControl):
 		if s.controlCode == 0 {
 			return
 		}
@@ -244,15 +244,15 @@ func (s *PicState) fill(cx, cy int) {
 }
 
 func (s *PicState) line(x1, y1, x2, y2 int) {
-	if s.drawMode.Has(picDrawVisual) {
+	if s.drawMode.has(picDrawVisual) {
 		s.Visual.Line(x1, y1, x2, y2, s.color)
 		s.debugger()
 	}
-	if s.drawMode.Has(picDrawPriority) {
+	if s.drawMode.has(picDrawPriority) {
 		c := s.priorityCode
 		s.Priority.Line(x1, y1, x2, y2, c)
 	}
-	if s.drawMode.Has(picDrawControl) {
+	if s.drawMode.has(picDrawControl) {
 		c := s.controlCode
 		s.Control.Line(x1, y1, x2, y2, c)
 	}
@@ -263,15 +263,15 @@ func (s *PicState) drawPattern(cx, cy int) {
 	isRect := s.patternCode&0x10 != 0
 	isSolid := s.patternCode&0x20 == 0
 
-	if s.drawMode.Has(picDrawVisual) {
+	if s.drawMode.has(picDrawVisual) {
 		s.Visual.Pattern(cx, cy, size, isRect, isSolid, s.patternTexture, s.color)
 		s.debugger()
 	}
-	if s.drawMode.Has(picDrawPriority) {
+	if s.drawMode.has(picDrawPriority) {
 		c := s.priorityCode
 		s.Priority.Pattern(cx, cy, size, isRect, isSolid, s.patternTexture, c)
 	}
-	if s.drawMode.Has(picDrawControl) {
+	if s.drawMode.has(picDrawControl) {
 		c := s.controlCode
 		s.Control.Pattern(cx, cy, size, isRect, isSolid, s.patternTexture, c)
 	}
@@ -321,9 +321,9 @@ opLoop:
 			pal := code / 40
 			index := code % 40
 			state.color = state.palettes[pal][index]
-			state.drawMode.Set(picDrawVisual, true)
+			state.drawMode.set(picDrawVisual, true)
 		case pOpDisableVisual:
-			state.drawMode.Set(picDrawVisual, false)
+			state.drawMode.set(picDrawVisual, false)
 
 		case pOpSetPriority:
 			code, err := r.bits.Read8(8)
@@ -331,9 +331,9 @@ opLoop:
 				return screen.Pic{}, err
 			}
 			state.priorityCode = code & 0xF
-			state.drawMode.Set(picDrawPriority, true)
+			state.drawMode.set(picDrawPriority, true)
 		case pOpDisablePriority:
-			state.drawMode.Set(picDrawPriority, false)
+			state.drawMode.set(picDrawPriority, false)
 
 		case pOpSetControl:
 			code, err := r.bits.Read8(8)
@@ -341,9 +341,9 @@ opLoop:
 				return screen.Pic{}, err
 			}
 			state.controlCode = code & 0xf
-			state.drawMode.Set(picDrawControl, true)
+			state.drawMode.set(picDrawControl, true)
 		case pOpDisableControl:
-			state.drawMode.Set(picDrawControl, false)
+			state.drawMode.set(picDrawControl, false)
 
 		// Lines
 		case pOpShortLines:
