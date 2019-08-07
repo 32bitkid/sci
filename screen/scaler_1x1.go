@@ -8,14 +8,20 @@ type Scaler1x1 struct {
 
 func (s Scaler1x1) NewPic(bounds image.Rectangle) Pic {
 	return Pic{
-		Visual:   s.newVisual(bounds),
-		Priority: s.newPriority(bounds),
-		Control:  s.newControl(bounds),
+		Visual: s.newVisual(bounds),
+		Priority: &buffer1x1{
+			Paletted: image.NewPaletted(bounds, DefaultPalettes.Depth),
+			ditherFn: noDither,
+		},
+		Control: &buffer1x1{
+			Paletted: image.NewPaletted(bounds, DefaultPalettes.EGA),
+			ditherFn: noDither,
+		},
 	}
 }
 
 func (s Scaler1x1) newVisual(r image.Rectangle) Buffer {
-	palette := EGAPalette
+	palette := DefaultPalettes.EGA
 	if s.VisualDitherer != nil {
 		dPal := s.VisualDitherer.Palette
 		if dPal != nil {
@@ -26,20 +32,6 @@ func (s Scaler1x1) newVisual(r image.Rectangle) Buffer {
 		Paletted: image.NewPaletted(r, palette),
 		ditherer: s.VisualDitherer,
 		ditherFn: dither5050,
-	}
-}
-
-func (s Scaler1x1) newControl(r image.Rectangle) Buffer {
-	return &buffer1x1{
-		Paletted: image.NewPaletted(r, Depth16Palette),
-		ditherFn: noDither,
-	}
-}
-
-func (s Scaler1x1) newPriority(r image.Rectangle) Buffer {
-	return &buffer1x1{
-		Paletted: image.NewPaletted(r, EGAPalette),
-		ditherFn: noDither,
 	}
 }
 
