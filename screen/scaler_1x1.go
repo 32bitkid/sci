@@ -71,11 +71,12 @@ func (buf *buffer1x1) dither(x, y int, color uint8) uint8 {
 }
 
 func (buf *buffer1x1) Line(x1, y1, x2, y2 int, color uint8) {
-	left, top, right, bottom := x1, y1, x2, y2
-	clip(&left, 0, 319)
-	clip(&top, 0, 189)
-	clip(&right, 0, 319)
-	clip(&bottom, 0, 189)
+	var (
+		left   = clampInt(0, 319, x1)
+		top    = clampInt(0, 189, y1)
+		right  = clampInt(0, 319, x2)
+		bottom = clampInt(0, 189, y2)
+	)
 
 	switch {
 	case left == right:
@@ -125,13 +126,13 @@ func (buf *buffer1x1) Line(x1, y1, x2, y2 int, color uint8) {
 }
 
 func (buf *buffer1x1) Pattern(cx, cy, size int, isRect, isSolid bool, seed uint8, color uint8) {
-	noiseIndex := noiseOffsets[seed]
-	width := size*2 + 2
-	height := size*2 + 1
-
-	left, top :=
-		clampInt(0, 320-width, cx-size),
-		clampInt(0, 190-height, cy-size)
+	var (
+		noiseIndex = noiseOffsets[seed]
+		width      = size*2 + 2
+		height     = size*2 + 1
+		left       = clampInt(0, 320, cx-size)
+		top        = clampInt(0, 190, cy-size)
+	)
 
 	if isRect {
 		right, bottom := left+width, top+height
@@ -272,14 +273,5 @@ func absInt(v int) int {
 func swapIf(a, b *int, cond bool) {
 	if cond {
 		*a, *b = *b, *a
-	}
-}
-
-func clip(v *int, min, max int) {
-	switch {
-	case *v < min:
-		*v = min
-	case *v > max:
-		*v = max
 	}
 }
