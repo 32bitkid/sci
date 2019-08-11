@@ -139,30 +139,39 @@ func (p picReader) getRelCoords1(x, y int) (int, int, error) {
 type pOpCode uint8
 
 const (
-	pOpSetColor         pOpCode = 0xf0
-	pOpDisableVisual            = 0xf1
-	pOpSetPriority              = 0xf2
-	pOpDisablePriority          = 0xf3
-	pOpShortPatterns            = 0xf4
-	pOpMediumLines              = 0xf5
-	pOpLongLines                = 0xf6
-	pOpShortLines               = 0xf7
-	pOpFill                     = 0xf8
-	pOpSetPattern               = 0xf9
-	pOpAbsolutePatterns         = 0xfa
-	pOpSetControl               = 0xfb
-	pOpDisableControl           = 0xfc
-	pOpMediumPatterns           = 0xfd
-	pOpOPX                      = 0xfe
-	pOpDone                     = 0xff
+	// Layer Control
+	pOpSetVisual       pOpCode = 0xf0
+	pOpDisableVisual           = 0xf1
+	pOpSetPriority             = 0xf2
+	pOpDisablePriority         = 0xf3
+	pOpSetControl              = 0xfb
+	pOpDisableControl          = 0xfc
+
+	// Lines
+	pOpShortLines  = 0xf7
+	pOpMediumLines = 0xf5
+	pOpLongLines   = 0xf6
+
+	// Patterns
+	pOpSetPattern     = 0xf9
+	pOpShortPatterns  = 0xf4
+	pOpMediumPatterns = 0xfd
+	pOpLongPatterns   = 0xfa
+
+	// Fills
+	pOpFills = 0xf8
+
+	// Extensions
+	pOpOPX  = 0xfe
+	pOpDone = 0xff
 )
 
 // Extended Picture Op-Codes
 type pOpxCode uint8
 
 const (
-	pOpxUpdatePaletteEntries pOpxCode = 0x00
-	pOpxSetPalette                    = 0x01
+	pOpxUpdatePalette pOpxCode = 0x00
+	pOpxSetPalette             = 0x01
 )
 
 // picPalette is an array of 40 uint8 values, which is actually a tuple of two 4-bit EGA colors.
@@ -342,7 +351,7 @@ opLoop:
 		}
 
 		switch pOpCode(op) {
-		case pOpSetColor:
+		case pOpSetVisual:
 			code, err := r.bits.Read8(8)
 			if err != nil {
 				return screen.Pic{}, err
@@ -436,7 +445,7 @@ opLoop:
 			}
 
 		// Fills
-		case pOpFill:
+		case pOpFills:
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
 					return screen.Pic{}, err
@@ -535,7 +544,7 @@ opLoop:
 				}
 				state.drawPattern(x, y, patternTexture)
 			}
-		case pOpAbsolutePatterns:
+		case pOpLongPatterns:
 			for {
 				var patternTexture uint8 = 0
 
@@ -566,8 +575,9 @@ opLoop:
 			if err != nil {
 				return screen.Pic{}, err
 			}
+
 			switch pOpxCode(opx) {
-			case pOpxUpdatePaletteEntries:
+			case pOpxUpdatePalette:
 				for {
 					if peek, err := r.bits.Peek8(8); err != nil {
 						return screen.Pic{}, err
@@ -575,7 +585,7 @@ opLoop:
 						break
 					}
 
-					index, err := r.bits.Read8(8)
+					code, err := r.bits.Read8(8)
 					if err != nil {
 						return screen.Pic{}, err
 					}
@@ -584,7 +594,9 @@ opLoop:
 					if err != nil {
 						return screen.Pic{}, err
 					}
-					state.palettes[index/40][index%40] = color
+
+					pal, idx := code/40, code%40
+					state.palettes[pal][idx] = color
 				}
 
 			case pOpxSetPalette:
