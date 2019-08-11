@@ -60,7 +60,7 @@ func NewView(b []byte) (View, error) {
 
 			sprite := Sprite{}
 
-			if err := binary.Read(r, binary.LittleEndian, &sprite.SpriteDetails); err != nil {
+			if err := binary.Read(r, binary.LittleEndian, &sprite.SpriteHeader); err != nil {
 				return nil, err
 			}
 
@@ -188,7 +188,7 @@ func (g SpriteGroup) GIF(palette *screen.Ditherer) *gif.GIF {
 	}
 }
 
-type SpriteDetails struct {
+type SpriteHeader struct {
 	Width    uint16
 	Height   uint16
 	X        int8
@@ -197,6 +197,6 @@ type SpriteDetails struct {
 }
 
 type Sprite struct {
+	SpriteHeader
 	Pixels []uint8
-	SpriteDetails
 }
