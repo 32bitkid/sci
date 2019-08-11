@@ -196,18 +196,31 @@ func (mode picDrawMode) has(flag picDrawMode) bool {
 	return mode&flag == flag
 }
 
-type PatternCode uint8
+type patternCode uint8
 
-func (code PatternCode) size() int {
+func (code patternCode) size() int {
 	return int(code & 0x7)
 }
 
-func (code PatternCode) isRect() bool {
+func (code patternCode) isRect() bool {
 	return code&0x10 != 0
 }
 
-func (code PatternCode) isSolid() bool {
+func (code patternCode) isSolid() bool {
 	return code&0x20 == 0
+}
+
+type colorCode uint8
+
+func (code colorCode) color(palettes [4]picPalette) uint8 {
+	pal, idx := int(code)/40, int(code)%40
+	return palettes[pal][idx]
+}
+
+type nybbleCode uint8
+
+func (code nybbleCode) code() uint8 {
+	return uint8(code) & 0xF
 }
 
 type PicState struct {
@@ -216,11 +229,10 @@ type PicState struct {
 	palettes [4]picPalette
 	drawMode picDrawMode
 
-	color        uint8
-	priorityCode uint8
-	controlCode  uint8
-
-	patternCode PatternCode
+	colorCode    colorCode
+	priorityCode nybbleCode
+	controlCode  nybbleCode
+	patternCode  patternCode
 
 	debugFn DebugCallback
 }
@@ -234,23 +246,26 @@ func (s *PicState) debugger() {
 func (s *PicState) fill(cx, cy int) {
 	switch {
 	case s.drawMode.has(picDrawVisual):
-		if s.color == 255 {
+		color := s.colorCode.color(s.palettes)
+		if color == 255 {
 			// FIXME this fill occurs but it doesn't make any sense.
 			//  It's asking for a solid white fill, but that should be a noop if legalColor is always 15.
 			return
 		}
-		s.Visual.Fill(cx, cy, 0xf, s.color)
+		s.Visual.Fill(cx, cy, 0xf, color)
 		s.debugger()
 	case s.drawMode.has(picDrawPriority):
-		if s.priorityCode == 0 {
+		code := s.priorityCode.code()
+		if code == 0 {
 			return
 		}
-		s.Priority.Fill(cx, cy, 0x0, s.priorityCode)
+		s.Priority.Fill(cx, cy, 0x0, code)
 	case s.drawMode.has(picDrawControl):
-		if s.controlCode == 0 {
+		code := s.controlCode.code()
+		if code == 0 {
 			return
 		}
-		s.Priority.Fill(cx, cy, 0x0, s.controlCode)
+		s.Priority.Fill(cx, cy, 0x0, code)
 	default:
 		return
 	}
@@ -258,16 +273,17 @@ func (s *PicState) fill(cx, cy int) {
 
 func (s *PicState) line(x1, y1, x2, y2 int) {
 	if s.drawMode.has(picDrawVisual) {
-		s.Visual.Line(x1, y1, x2, y2, s.color)
+		color := s.colorCode.color(s.palettes)
+		s.Visual.Line(x1, y1, x2, y2, color)
 		s.debugger()
 	}
 	if s.drawMode.has(picDrawPriority) {
-		c := s.priorityCode
-		s.Priority.Line(x1, y1, x2, y2, c)
+		code := s.priorityCode.code()
+		s.Priority.Line(x1, y1, x2, y2, code)
 	}
 	if s.drawMode.has(picDrawControl) {
-		c := s.controlCode
-		s.Control.Line(x1, y1, x2, y2, c)
+		code := s.controlCode.code()
+		s.Control.Line(x1, y1, x2, y2, code)
 	}
 }
 
@@ -277,14 +293,17 @@ func (s *PicState) drawPattern(cx, cy int, patternTexture uint8) {
 	isSolid := s.patternCode.isSolid()
 
 	if s.drawMode.has(picDrawVisual) {
-		s.Visual.Pattern(cx, cy, size, isRect, isSolid, patternTexture, s.color)
+		color := s.colorCode.color(s.palettes)
+		s.Visual.Pattern(cx, cy, size, isRect, isSolid, patternTexture, color)
 		s.debugger()
 	}
 	if s.drawMode.has(picDrawPriority) {
-		s.Priority.Pattern(cx, cy, size, isRect, isSolid, patternTexture, s.priorityCode)
+		code := s.priorityCode.code()
+		s.Priority.Pattern(cx, cy, size, isRect, isSolid, patternTexture, code)
 	}
 	if s.drawMode.has(picDrawControl) {
-		s.Control.Pattern(cx, cy, size, isRect, isSolid, patternTexture, s.priorityCode)
+		code := s.priorityCode.code()
+		s.Control.Pattern(cx, cy, size, isRect, isSolid, patternTexture, code)
 	}
 }
 
@@ -329,9 +348,7 @@ opLoop:
 				return screen.Pic{}, err
 			}
 
-			pal := code / 40
-			index := code % 40
-			state.color = state.palettes[pal][index]
+			state.colorCode = colorCode(code)
 			state.drawMode.set(picDrawVisual, true)
 		case pOpDisableVisual:
 			state.drawMode.set(picDrawVisual, false)
@@ -341,7 +358,7 @@ opLoop:
 			if err != nil {
 				return screen.Pic{}, err
 			}
-			state.priorityCode = code & 0xF
+			state.priorityCode = nybbleCode(code)
 			state.drawMode.set(picDrawPriority, true)
 		case pOpDisablePriority:
 			state.drawMode.set(picDrawPriority, false)
@@ -351,7 +368,7 @@ opLoop:
 			if err != nil {
 				return screen.Pic{}, err
 			}
-			state.controlCode = code & 0xf
+			state.controlCode = nybbleCode(code)
 			state.drawMode.set(picDrawControl, true)
 		case pOpDisableControl:
 			state.drawMode.set(picDrawControl, false)
@@ -441,7 +458,7 @@ opLoop:
 			if err != nil {
 				return screen.Pic{}, err
 			}
-			state.patternCode = PatternCode(code & 0x3f)
+			state.patternCode = patternCode(code & 0x3f)
 		case pOpShortPatterns:
 			var patternTexture uint8 = 0
 
