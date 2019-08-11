@@ -196,6 +196,20 @@ func (mode picDrawMode) has(flag picDrawMode) bool {
 	return mode&flag == flag
 }
 
+type PatternCode uint8
+
+func (code PatternCode) size() int {
+	return int(code & 0x7)
+}
+
+func (code PatternCode) isRect() bool {
+	return code&0x10 != 0
+}
+
+func (code PatternCode) isSolid() bool {
+	return code&0x20 == 0
+}
+
 type PicState struct {
 	screen.Pic
 
@@ -206,8 +220,7 @@ type PicState struct {
 	priorityCode uint8
 	controlCode  uint8
 
-	patternCode    uint8
-	patternTexture uint8
+	patternCode PatternCode
 
 	debugFn DebugCallback
 }
@@ -258,22 +271,20 @@ func (s *PicState) line(x1, y1, x2, y2 int) {
 	}
 }
 
-func (s *PicState) drawPattern(cx, cy int) {
-	size := int(s.patternCode & 0x7)
-	isRect := s.patternCode&0x10 != 0
-	isSolid := s.patternCode&0x20 == 0
+func (s *PicState) drawPattern(cx, cy int, patternTexture uint8) {
+	size := s.patternCode.size()
+	isRect := s.patternCode.isRect()
+	isSolid := s.patternCode.isSolid()
 
 	if s.drawMode.has(picDrawVisual) {
-		s.Visual.Pattern(cx, cy, size, isRect, isSolid, s.patternTexture, s.color)
+		s.Visual.Pattern(cx, cy, size, isRect, isSolid, patternTexture, s.color)
 		s.debugger()
 	}
 	if s.drawMode.has(picDrawPriority) {
-		c := s.priorityCode
-		s.Priority.Pattern(cx, cy, size, isRect, isSolid, s.patternTexture, c)
+		s.Priority.Pattern(cx, cy, size, isRect, isSolid, patternTexture, s.priorityCode)
 	}
 	if s.drawMode.has(picDrawControl) {
-		c := s.controlCode
-		s.Control.Pattern(cx, cy, size, isRect, isSolid, s.patternTexture, c)
+		s.Control.Pattern(cx, cy, size, isRect, isSolid, patternTexture, s.priorityCode)
 	}
 }
 
@@ -430,21 +441,23 @@ opLoop:
 			if err != nil {
 				return screen.Pic{}, err
 			}
-			state.patternCode = code & 0x3f
+			state.patternCode = PatternCode(code & 0x3f)
 		case pOpShortPatterns:
-			if state.patternCode&0x20 != 0 {
+			var patternTexture uint8 = 0
+
+			if !state.patternCode.isSolid() {
 				texture, err := r.bits.Read8(8)
 				if err != nil {
 					return screen.Pic{}, err
 				}
-				state.patternTexture = texture >> 1
+				patternTexture = texture >> 1
 			}
 
 			x, y, err := r.getAbsCoords()
 			if err != nil {
 				return screen.Pic{}, err
 			}
-			state.drawPattern(x, y)
+			state.drawPattern(x, y, patternTexture)
 
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
@@ -453,34 +466,36 @@ opLoop:
 					break
 				}
 
-				if state.patternCode&0x20 != 0 {
+				if !state.patternCode.isSolid() {
 					texture, err := r.bits.Read8(8)
 					if err != nil {
 						return screen.Pic{}, err
 					}
-					state.patternTexture = texture >> 1
+					patternTexture = texture >> 1
 				}
 
 				x, y, err = r.getRelCoords1(x, y)
 				if err != nil {
 					return screen.Pic{}, err
 				}
-				state.drawPattern(x, y)
+				state.drawPattern(x, y, patternTexture)
 			}
 		case pOpMediumPatterns:
-			if state.patternCode&0x20 != 0 {
+			var patternTexture uint8 = 0
+
+			if !state.patternCode.isSolid() {
 				texture, err := r.bits.Read8(8)
 				if err != nil {
 					return screen.Pic{}, err
 				}
-				state.patternTexture = texture >> 1
+				patternTexture = texture >> 1
 			}
 
 			x, y, err := r.getAbsCoords()
 			if err != nil {
 				return screen.Pic{}, err
 			}
-			state.drawPattern(x, y)
+			state.drawPattern(x, y, patternTexture)
 
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
@@ -489,41 +504,43 @@ opLoop:
 					break
 				}
 
-				if state.patternCode&0x20 != 0 {
+				if !state.patternCode.isSolid() {
 					texture, err := r.bits.Read8(8)
 					if err != nil {
 						return screen.Pic{}, err
 					}
-					state.patternTexture = texture >> 1
+					patternTexture = texture >> 1
 				}
 
 				x, y, err = r.getRelCoords2(x, y)
 				if err != nil {
 					return screen.Pic{}, err
 				}
-				state.drawPattern(x, y)
+				state.drawPattern(x, y, patternTexture)
 			}
 		case pOpAbsolutePatterns:
 			for {
+				var patternTexture uint8 = 0
+
 				if peek, err := r.bits.Peek8(8); err != nil {
 					return screen.Pic{}, err
 				} else if peek >= 0xf0 {
 					break
 				}
 
-				if state.patternCode&0x20 != 0 {
+				if !state.patternCode.isSolid() {
 					texture, err := r.bits.Read8(8)
 					if err != nil {
 						return screen.Pic{}, err
 					}
-					state.patternTexture = texture >> 1
+					patternTexture = texture >> 1
 				}
 
 				x, y, err := r.getAbsCoords()
 				if err != nil {
 					return screen.Pic{}, err
 				}
-				state.drawPattern(x, y)
+				state.drawPattern(x, y, patternTexture)
 			}
 
 		// Extensions
