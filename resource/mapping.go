@@ -2,6 +2,8 @@ package resource
 
 import "github.com/32bitkid/sci/screen"
 
+type Number uint16
+
 type Mapping interface {
 	Type() Type
 	Number() Number

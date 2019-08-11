@@ -7,7 +7,6 @@ import (
 	"io"
 )
 
-type Number uint16
 type RID uint16
 
 type Resource interface {

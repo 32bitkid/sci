@@ -20,8 +20,8 @@ type diskMapping struct {
 	decompressors resource.DecompressorLUT
 }
 
-func (dr diskMapping) Type() resource.Type     { return dr.resourceType }
-func (dr diskMapping) Number() resource.Number { return dr.number }
+func (dr *diskMapping) Type() resource.Type     { return dr.resourceType }
+func (dr *diskMapping) Number() resource.Number { return dr.number }
 
 func (dr *diskMapping) Resource() (resource.Resource, error) {
 	if dr.cache != nil {
@@ -46,21 +46,21 @@ func (dr *diskMapping) Resource() (resource.Resource, error) {
 		return nil, err
 	}
 
-	dr.cache = &loadedResource{
+	dr.cache = &cachedResource{
 		id:           resourceID,
 		resourceType: dr.resourceType,
-		bytes:        payload,
+		payload:      payload,
 	}
 
 	return dr.cache, nil
 }
 
-type loadedResource struct {
+type cachedResource struct {
 	id           resource.RID
 	resourceType resource.Type
-	bytes        []uint8
+	payload      []uint8
 }
 
-func (res loadedResource) ID() resource.RID    { return res.id }
-func (res loadedResource) Type() resource.Type { return res.resourceType }
-func (res loadedResource) Bytes() []byte       { return res.bytes }
+func (res cachedResource) ID() resource.RID    { return res.id }
+func (res cachedResource) Type() resource.Type { return res.resourceType }
+func (res cachedResource) Bytes() []byte       { return res.payload }
