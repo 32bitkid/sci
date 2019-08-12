@@ -40,7 +40,7 @@ type picReader struct {
 	bits bitreader.BitReader
 }
 
-// getAbsCoords gets reads an absolute position from the
+// getPoint24 gets reads an absolute position from the
 // bit-stream. The format is 24-bits long:
 //
 // bits  |
@@ -49,7 +49,7 @@ type picReader struct {
 //  8-15 | low byte of x-position
 // 16-23 | low byte of y-position
 //
-func (p picReader) getAbsCoords() (int, int, error) {
+func (p picReader) getPoint24() (int, int, error) {
 	code, err := p.bits.Read32(24)
 	if err != nil {
 		return 0, 0, err
@@ -59,17 +59,23 @@ func (p picReader) getAbsCoords() (int, int, error) {
 	return int(x), int(y), nil
 }
 
-// getRelCoords2 reads a medium length delta from the bit-stream.
+// getPoint16 reads a medium length delta from the bit-stream.
 // The total PayloadBytes is 16-bits long:
 //
 // bits |
 // 0-7  | y-delta
 // 8-15 | x-delta
 //
-func (p picReader) getRelCoords2(x1, y1 int) (int, int, error) {
+func (p picReader) getPoint16(x, y int) (int, int, error) {
 	dy, err := p.bits.Read8(8)
 	if err != nil {
 		return 0, 0, err
+	}
+
+	if dy&0x80 != 0 {
+		y -= int(dy & 0x7F)
+	} else {
+		y += int(dy & 0x7F)
 	}
 
 	dx, err := p.bits.Read8(8)
@@ -77,59 +83,37 @@ func (p picReader) getRelCoords2(x1, y1 int) (int, int, error) {
 		return 0, 0, err
 	}
 
-	x2, y2 := x1, y1
+	// dx is twos-compliment
+	x += int(int8(dx))
 
-	if dy&0x80 != 0 {
-		y2 -= int(dy & 0x7F)
-	} else {
-		y2 += int(dy & 0x7F)
-	}
-
-	if dx&0x80 != 0 {
-		x2 -= 128 - int(dx&0x7F)
-	} else {
-		x2 += int(dx & 0x7F)
-	}
-
-	return x2, y2, nil
+	return x, y, nil
 }
 
-// getRelCoords1 reads a medium length delta from the bit-stream.
+// getPoint8 reads a medium length delta from the bit-stream.
 // The total PayloadBytes is 8-bits long:
 //
 // bits |
 // 0-3  | y-delta
 // 4-7  | x-delta
 //
-func (p picReader) getRelCoords1(x, y int) (int, int, error) {
-	xSign, err := p.bits.Read1()
-	if err != nil {
-		return 0, 0, err
-	}
-	dx, err := p.bits.Read8(3)
+func (p picReader) getPoint8(x, y int) (int, int, error) {
+	code, err := p.bits.Read8(8)
 	if err != nil {
 		return 0, 0, err
 	}
 
-	ySign, err := p.bits.Read1()
-	if err != nil {
-		return 0, 0, err
-	}
-	dy, err := p.bits.Read8(3)
-	if err != nil {
-		return 0, 0, err
-	}
-
+	xSign, dx := (code >> 4) & 0x8 != 0, int((code >> 4) & 0x7)
 	if xSign {
-		x -= int(dx)
+		x -= dx
 	} else {
-		x += int(dx)
+		x += dx
 	}
 
+	ySign, dy := (code >> 0) & 0x8 != 0, int((code >> 0) & 0x7)
 	if ySign {
-		y -= int(dy)
+		y -= dy
 	} else {
-		y += int(dy)
+		y += dy
 	}
 
 	return x, y, nil
@@ -384,7 +368,7 @@ opLoop:
 
 		// Lines
 		case pOpShortLines:
-			x1, y1, err := r.getAbsCoords()
+			x1, y1, err := r.getPoint24()
 			if err != nil {
 				return screen.Pic{}, err
 			}
@@ -395,7 +379,7 @@ opLoop:
 					break
 				}
 
-				x2, y2, err := r.getRelCoords1(x1, y1)
+				x2, y2, err := r.getPoint8(x1, y1)
 				if err != nil {
 					return screen.Pic{}, err
 				}
@@ -404,7 +388,7 @@ opLoop:
 				x1, y1 = x2, y2
 			}
 		case pOpMediumLines:
-			x1, y1, err := r.getAbsCoords()
+			x1, y1, err := r.getPoint24()
 			if err != nil {
 				return screen.Pic{}, err
 			}
@@ -415,7 +399,7 @@ opLoop:
 					break
 				}
 
-				x2, y2, err := r.getRelCoords2(x1, y1)
+				x2, y2, err := r.getPoint16(x1, y1)
 				if err != nil {
 					return screen.Pic{}, err
 				}
@@ -424,7 +408,7 @@ opLoop:
 				x1, y1 = x2, y2
 			}
 		case pOpLongLines:
-			x1, y1, err := r.getAbsCoords()
+			x1, y1, err := r.getPoint24()
 			if err != nil {
 				return screen.Pic{}, err
 			}
@@ -435,7 +419,7 @@ opLoop:
 					break
 				}
 
-				x2, y2, err := r.getAbsCoords()
+				x2, y2, err := r.getPoint24()
 				if err != nil {
 					return screen.Pic{}, err
 				}
@@ -453,7 +437,7 @@ opLoop:
 					break
 				}
 
-				x, y, err := r.getAbsCoords()
+				x, y, err := r.getPoint24()
 				if err != nil {
 					return screen.Pic{}, err
 				}
@@ -479,7 +463,7 @@ opLoop:
 				patternTexture = texture >> 1
 			}
 
-			x, y, err := r.getAbsCoords()
+			x, y, err := r.getPoint24()
 			if err != nil {
 				return screen.Pic{}, err
 			}
@@ -500,7 +484,7 @@ opLoop:
 					patternTexture = texture >> 1
 				}
 
-				x, y, err = r.getRelCoords1(x, y)
+				x, y, err = r.getPoint8(x, y)
 				if err != nil {
 					return screen.Pic{}, err
 				}
@@ -517,7 +501,7 @@ opLoop:
 				patternTexture = texture >> 1
 			}
 
-			x, y, err := r.getAbsCoords()
+			x, y, err := r.getPoint24()
 			if err != nil {
 				return screen.Pic{}, err
 			}
@@ -538,7 +522,7 @@ opLoop:
 					patternTexture = texture >> 1
 				}
 
-				x, y, err = r.getRelCoords2(x, y)
+				x, y, err = r.getPoint16(x, y)
 				if err != nil {
 					return screen.Pic{}, err
 				}
@@ -562,7 +546,7 @@ opLoop:
 					patternTexture = texture >> 1
 				}
 
-				x, y, err := r.getAbsCoords()
+				x, y, err := r.getPoint24()
 				if err != nil {
 					return screen.Pic{}, err
 				}
