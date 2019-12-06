@@ -14,7 +14,7 @@ import (
 func NewPic(b []byte, options ...PicOptions) (screen.Pic, error) {
 	var debugFn DebugCallback
 	var scaler screen.Scaler = &screen.Scaler1x1{
-		VisualDitherer: screen.DefaultDitherers.EGA,
+		Ditherer: screen.DefaultDitherers.EGA,
 	}
 	for _, opts := range options {
 		if opts.Scaler != nil {

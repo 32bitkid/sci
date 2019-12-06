@@ -3,7 +3,7 @@ package screen
 import "image"
 
 type Scaler1x1 struct {
-	VisualDitherer *Ditherer
+	*Ditherer
 }
 
 func (s Scaler1x1) NewPic(bounds image.Rectangle) Pic {
@@ -22,15 +22,15 @@ func (s Scaler1x1) NewPic(bounds image.Rectangle) Pic {
 
 func (s Scaler1x1) newVisual(r image.Rectangle) Buffer {
 	palette := DefaultPalettes.EGA
-	if s.VisualDitherer != nil {
-		dPal := s.VisualDitherer.Palette
+	if s.Ditherer != nil {
+		dPal := s.Ditherer.Palette
 		if dPal != nil {
 			palette = dPal
 		}
 	}
 	return &buffer1x1{
 		Paletted: image.NewPaletted(r, palette),
-		ditherer: s.VisualDitherer,
+		ditherer: s.Ditherer,
 		ditherFn: dither5050,
 	}
 }
