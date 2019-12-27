@@ -102,14 +102,14 @@ func (p picReader) getPoint8(x, y int) (int, int, error) {
 		return 0, 0, err
 	}
 
-	xSign, dx := (code >> 4) & 0x8 != 0, int((code >> 4) & 0x7)
+	xSign, dx := (code>>4)&0x8 != 0, int((code>>4)&0x7)
 	if xSign {
 		x -= dx
 	} else {
 		x += dx
 	}
 
-	ySign, dy := (code >> 0) & 0x8 != 0, int((code >> 0) & 0x7)
+	ySign, dy := (code>>0)&0x8 != 0, int((code>>0)&0x7)
 	if ySign {
 		y -= dy
 	} else {
