@@ -157,6 +157,7 @@ func (buf *buffer1x1) Pattern(cx, cy, size int, isRect, isSolid bool, seed uint8
 		}
 	} else {
 		bitmap := circleBitmaps[size]
+		size := len(bitmap)
 		for y, row := range bitmap {
 			py := top + y
 			if py >= 190 {
@@ -164,11 +165,12 @@ func (buf *buffer1x1) Pattern(cx, cy, size int, isRect, isSolid bool, seed uint8
 			}
 
 			offset := py * buf.Stride
-			for x, pixel := range row {
+			for x := 0; x < size; x++ {
 				px := left + x
 				if px >= 320 {
 					continue
 				}
+				pixel := ((row >> (size - (x + 1))) & 1) == 1
 				if pixel {
 					fill := isSolid || noise[noiseIndex%len(noise)]
 					if fill {
