@@ -168,7 +168,7 @@ func (buf *buffer1x1) Pattern(cx, cy, size int, isRect, isSolid bool, seed uint8
 			for x := 0; x < size; x++ {
 				px := left + x
 				if px >= 320 {
-					continue
+					break
 				}
 				pixel := ((row >> (size - (x + 1))) & 1) == 1
 				if pixel {
