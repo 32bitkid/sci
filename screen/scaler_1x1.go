@@ -52,9 +52,11 @@ var dither5050 ditherFn = func(x, y int, c1, c2 uint8) uint8 {
 	return c2
 }
 
-func (buf *buffer1x1) Clear(c uint8) {
+func (buf *buffer1x1) Clear(color uint8) {
 	for i, max := 0, len(buf.Paletted.Pix); i < max; i++ {
-		buf.Paletted.Pix[i] = c
+		y := i / buf.Paletted.Stride
+		x := i % buf.Paletted.Stride
+		buf.Paletted.Pix[i] = buf.dither(x, y, color)
 	}
 }
 

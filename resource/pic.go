@@ -323,7 +323,7 @@ func readPic(
 		debugFn: debugFn,
 	}
 
-	state.Visual.Clear(0xF)
+	state.Visual.Clear(0xFF)
 	state.Control.Clear(0x0)
 	state.Priority.Clear(0x0)
 
