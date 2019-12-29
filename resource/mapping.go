@@ -16,7 +16,7 @@ type PictureMapping struct{ Mapping }
 func (pic PictureMapping) Render(options ...PicOptions) (screen.Pic, error) {
 	res, err := pic.Resource()
 	if err != nil {
-		return screen.Pic{}, err
+		return nil, err
 	}
 	return NewPic(res.Bytes(), options...)
 }

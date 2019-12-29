@@ -7,18 +7,29 @@ import (
 type Ditherer struct {
 	color.Palette
 	ColorMapping
+	DitherFn
 }
 
-func (d *Ditherer) Get(c uint8) (uint8, uint8) {
+func (d *Ditherer) unpack(c uint8) (uint8, uint8) {
 	if d == nil {
 		return c & 0xF, c >> 4
 	}
-	return d.ColorMapping.Get(c)
+	return d.GetMapping(c)
+}
+
+func (d *Ditherer) DitherAt(x, y int, c uint8) uint8 {
+	ditherFn := d.DitherFn
+	if ditherFn == nil {
+		d.DitherFn = dither5050
+		ditherFn = dither5050
+	}
+	c1, c2 := d.unpack(c)
+	return ditherFn(x, y, c1, c2)
 }
 
 type ColorMapping map[uint8]struct{ c1, c2 uint8 }
 
-func (u ColorMapping) Get(c uint8) (uint8, uint8) {
+func (u ColorMapping) GetMapping(c uint8) (uint8, uint8) {
 	if e, ok := u[c]; ok {
 		return e.c1, e.c2
 	}
@@ -276,7 +287,10 @@ func NewUnditherer(pal color.Palette) *Ditherer {
 			mapping[b<<4|a] = entry
 		}
 	}
-	return &Ditherer{newPal, mapping}
+	return &Ditherer{
+		Palette:      newPal,
+		ColorMapping: mapping,
+	}
 }
 
 func NewAdaptiveDithering(in color.Palette, lower, upper float64) *Ditherer {

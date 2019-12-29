@@ -7,69 +7,52 @@ type Scaler1x1 struct {
 }
 
 func (s Scaler1x1) NewPic(bounds image.Rectangle) Pic {
-	return Pic{
-		Visual: s.newVisual(bounds),
-		Priority: &buffer1x1{
-			Paletted: image.NewPaletted(bounds, DefaultPalettes.Depth),
-			ditherFn: noDither,
-		},
-		Control: &buffer1x1{
-			Paletted: image.NewPaletted(bounds, DefaultPalettes.EGA),
-			ditherFn: noDither,
-		},
+	visualDitherer := s.Ditherer
+	if s.Ditherer == nil {
+		visualDitherer = DefaultDitherers.EGA
 	}
-}
 
-func (s Scaler1x1) newVisual(r image.Rectangle) Buffer {
-	palette := DefaultPalettes.EGA
-	if s.Ditherer != nil {
-		dPal := s.Ditherer.Palette
-		if dPal != nil {
-			palette = dPal
-		}
+	priorityDitherer := &Ditherer{
+		Palette:  DefaultPalettes.Depth,
+		DitherFn: noDither,
 	}
-	return &buffer1x1{
-		Paletted: image.NewPaletted(r, palette),
-		ditherer: s.Ditherer,
-		ditherFn: dither5050,
+	controlDitherer := &Ditherer{
+		Palette:  DefaultPalettes.Depth,
+		DitherFn: noDither,
+	}
+
+	return &picLayers{
+		visual: &buffer1x1{
+			Paletted: image.NewPaletted(bounds, visualDitherer.Palette),
+			Ditherer: visualDitherer,
+		},
+		priority: &buffer1x1{
+			Paletted: image.NewPaletted(bounds, visualDitherer.Palette),
+			Ditherer: priorityDitherer,
+		},
+		control: &buffer1x1{
+			Paletted: image.NewPaletted(bounds, visualDitherer.Palette),
+			Ditherer: controlDitherer,
+		},
 	}
 }
 
 type buffer1x1 struct {
 	*image.Paletted
-	ditherer *Ditherer
-	ditherFn
+	*Ditherer
 	stack []point
-}
-
-type ditherFn func(x, y int, c1, c2 uint8) uint8
-
-var noDither = func(x, y int, c1, _ uint8) uint8 { return c1 }
-var dither5050 ditherFn = func(x, y int, c1, c2 uint8) uint8 {
-	if (x&1)^(y&1) == 0 {
-		return c1
-	}
-	return c2
-}
-
-func (buf *buffer1x1) Clear(color uint8) {
-	for i, max := 0, len(buf.Paletted.Pix); i < max; i++ {
-		y := i / buf.Paletted.Stride
-		x := i % buf.Paletted.Stride
-		buf.Paletted.Pix[i] = buf.dither(x, y, color)
-	}
 }
 
 func (buf *buffer1x1) Image() *image.Paletted {
 	return buf.Paletted
 }
 
-func (buf *buffer1x1) dither(x, y int, color uint8) uint8 {
-	c1, c2 := buf.ditherer.Get(color)
-	if buf.ditherFn != nil {
-		return buf.ditherFn(x, y, c1, c2)
+func (buf *buffer1x1) Clear(color uint8) {
+	for i, max := 0, len(buf.Pix); i < max; i++ {
+		y := i / buf.Stride
+		x := i % buf.Stride
+		buf.Pix[i] = buf.DitherAt(x, y, color)
 	}
-	return color
 }
 
 func (buf *buffer1x1) Line(x1, y1, x2, y2 int, color uint8) {
@@ -84,12 +67,12 @@ func (buf *buffer1x1) Line(x1, y1, x2, y2 int, color uint8) {
 	case left == right:
 		swapIf(&top, &bottom, top > bottom)
 		for y := top; y <= bottom; y++ {
-			buf.Pix[y*buf.Stride+left] = buf.dither(left, y, color)
+			buf.Pix[y*buf.Stride+left] = buf.DitherAt(left, y, color)
 		}
 	case top == bottom:
 		swapIf(&right, &left, right > left)
 		for x := right; x <= left; x++ {
-			buf.Pix[top*buf.Stride+x] = buf.dither(x, top, color)
+			buf.Pix[top*buf.Stride+x] = buf.DitherAt(x, top, color)
 		}
 	default:
 		// bresenham
@@ -98,8 +81,8 @@ func (buf *buffer1x1) Line(x1, y1, x2, y2 int, color uint8) {
 
 		dx, dy = absInt(dx)<<1, absInt(dy)<<1
 
-		buf.Pix[top*buf.Stride+left] = buf.dither(left, top, color)
-		buf.Pix[bottom*buf.Stride+right] = buf.dither(right, bottom, color)
+		buf.Pix[top*buf.Stride+left] = buf.DitherAt(left, top, color)
+		buf.Pix[bottom*buf.Stride+right] = buf.DitherAt(right, bottom, color)
 
 		if dx > dy {
 			fraction := dy - (dx >> 1)
@@ -110,7 +93,7 @@ func (buf *buffer1x1) Line(x1, y1, x2, y2 int, color uint8) {
 				}
 				left += stepX
 				fraction += dy
-				buf.Pix[top*buf.Stride+left] = buf.dither(left, top, color)
+				buf.Pix[top*buf.Stride+left] = buf.DitherAt(left, top, color)
 			}
 		} else {
 			fraction := dx - (dy >> 1)
@@ -121,7 +104,7 @@ func (buf *buffer1x1) Line(x1, y1, x2, y2 int, color uint8) {
 				}
 				top += stepY
 				fraction += dx
-				buf.Pix[top*buf.Stride+left] = buf.dither(left, top, color)
+				buf.Pix[top*buf.Stride+left] = buf.DitherAt(left, top, color)
 			}
 		}
 	}
@@ -152,7 +135,7 @@ func (buf *buffer1x1) Pattern(cx, cy, size int, isRect, isSolid bool, seed uint8
 			for px := left; px < right; px++ {
 				fill := isSolid || noise[noiseIndex%len(noise)]
 				if fill {
-					buf.Pix[offset+px] = buf.dither(px, py, color)
+					buf.Pix[offset+px] = buf.DitherAt(px, py, color)
 				}
 				noiseIndex++
 			}
@@ -176,7 +159,7 @@ func (buf *buffer1x1) Pattern(cx, cy, size int, isRect, isSolid bool, seed uint8
 				if pixel {
 					fill := isSolid || noise[noiseIndex%len(noise)]
 					if fill {
-						buf.Pix[offset+px] = buf.dither(px, py, color)
+						buf.Pix[offset+px] = buf.DitherAt(px, py, color)
 					}
 					noiseIndex++
 				}
@@ -212,7 +195,7 @@ func (buf *buffer1x1) Fill(cx, cy int, legalColor uint8, color uint8) {
 			continue
 		}
 
-		buf.Pix[i] = buf.dither(x, y, color)
+		buf.Pix[i] = buf.DitherAt(x, y, color)
 
 		if down := (point{x, y + 1}); down.y < 190 {
 			if buf.isLegal(down, legalColor) {
@@ -233,7 +216,7 @@ func (buf *buffer1x1) Fill(cx, cy int, legalColor uint8, color uint8) {
 				break
 			}
 
-			buf.Pix[i] = buf.dither(dx, y, color)
+			buf.Pix[i] = buf.DitherAt(dx, y, color)
 			if down := (point{dx, y + 1}); down.y < 190 {
 				if buf.isLegal(down, legalColor) {
 					stack = append(stack, down)
@@ -253,7 +236,7 @@ func (buf *buffer1x1) Fill(cx, cy int, legalColor uint8, color uint8) {
 				break
 			}
 
-			buf.Pix[i] = buf.dither(dx, y, color)
+			buf.Pix[i] = buf.DitherAt(dx, y, color)
 			if down := (point{dx, y + 1}); down.y < 190 {
 				if buf.isLegal(down, legalColor) {
 					stack = append(stack, down)

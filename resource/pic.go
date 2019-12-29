@@ -245,20 +245,20 @@ func (s *PicState) fill(cx, cy int) {
 			//  It's asking for a solid white fill, but that should be a noop if legalColor is always 15.
 			return
 		}
-		s.Visual.Fill(cx, cy, 0xf, color)
+		s.Visual().Fill(cx, cy, 0xf, color)
 		s.debugger()
 	case s.drawMode.has(picDrawPriority):
 		code := s.priorityCode.code()
 		if code == 0 {
 			return
 		}
-		s.Priority.Fill(cx, cy, 0x0, code)
+		s.Priority().Fill(cx, cy, 0x0, code)
 	case s.drawMode.has(picDrawControl):
 		code := s.controlCode.code()
 		if code == 0 {
 			return
 		}
-		s.Priority.Fill(cx, cy, 0x0, code)
+		s.Priority().Fill(cx, cy, 0x0, code)
 	default:
 		return
 	}
@@ -267,16 +267,16 @@ func (s *PicState) fill(cx, cy int) {
 func (s *PicState) line(x1, y1, x2, y2 int) {
 	if s.drawMode.has(picDrawVisual) {
 		color := s.colorCode.color(s.palettes)
-		s.Visual.Line(x1, y1, x2, y2, color)
+		s.Visual().Line(x1, y1, x2, y2, color)
 		s.debugger()
 	}
 	if s.drawMode.has(picDrawPriority) {
 		code := s.priorityCode.code()
-		s.Priority.Line(x1, y1, x2, y2, code)
+		s.Priority().Line(x1, y1, x2, y2, code)
 	}
 	if s.drawMode.has(picDrawControl) {
 		code := s.controlCode.code()
-		s.Control.Line(x1, y1, x2, y2, code)
+		s.Control().Line(x1, y1, x2, y2, code)
 	}
 }
 
@@ -287,16 +287,16 @@ func (s *PicState) drawPattern(cx, cy int, patternTexture uint8) {
 
 	if s.drawMode.has(picDrawVisual) {
 		color := s.colorCode.color(s.palettes)
-		s.Visual.Pattern(cx, cy, size, isRect, isSolid, patternTexture, color)
+		s.Visual().Pattern(cx, cy, size, isRect, isSolid, patternTexture, color)
 		s.debugger()
 	}
 	if s.drawMode.has(picDrawPriority) {
 		code := s.priorityCode.code()
-		s.Priority.Pattern(cx, cy, size, isRect, isSolid, patternTexture, code)
+		s.Priority().Pattern(cx, cy, size, isRect, isSolid, patternTexture, code)
 	}
 	if s.drawMode.has(picDrawControl) {
 		code := s.priorityCode.code()
-		s.Control.Pattern(cx, cy, size, isRect, isSolid, patternTexture, code)
+		s.Control().Pattern(cx, cy, size, isRect, isSolid, patternTexture, code)
 	}
 }
 
@@ -323,22 +323,22 @@ func readPic(
 		debugFn: debugFn,
 	}
 
-	state.Visual.Clear(0xFF)
-	state.Control.Clear(0x0)
-	state.Priority.Clear(0x0)
+	state.Visual().Clear(0xFF)
+	state.Control().Clear(0x0)
+	state.Priority().Clear(0x0)
 
 opLoop:
 	for {
 		op, err := r.bits.Read8(8)
 		if err != nil {
-			return screen.Pic{}, err
+			return nil, err
 		}
 
 		switch pOpCode(op) {
 		case pOpSetVisual:
 			code, err := r.bits.Read8(8)
 			if err != nil {
-				return screen.Pic{}, err
+				return nil, err
 			}
 
 			state.colorCode = colorCode(code)
@@ -349,7 +349,7 @@ opLoop:
 		case pOpSetPriority:
 			code, err := r.bits.Read8(8)
 			if err != nil {
-				return screen.Pic{}, err
+				return nil, err
 			}
 			state.priorityCode = nybbleCode(code)
 			state.drawMode.set(picDrawPriority, true)
@@ -359,7 +359,7 @@ opLoop:
 		case pOpSetControl:
 			code, err := r.bits.Read8(8)
 			if err != nil {
-				return screen.Pic{}, err
+				return nil, err
 			}
 			state.controlCode = nybbleCode(code)
 			state.drawMode.set(picDrawControl, true)
@@ -370,18 +370,18 @@ opLoop:
 		case pOpShortLines:
 			x1, y1, err := r.getPoint24()
 			if err != nil {
-				return screen.Pic{}, err
+				return nil, err
 			}
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
-					return screen.Pic{}, err
+					return nil, err
 				} else if peek >= 0xf0 {
 					break
 				}
 
 				x2, y2, err := r.getPoint8(x1, y1)
 				if err != nil {
-					return screen.Pic{}, err
+					return nil, err
 				}
 
 				state.line(x1, y1, x2, y2)
@@ -390,18 +390,18 @@ opLoop:
 		case pOpMediumLines:
 			x1, y1, err := r.getPoint24()
 			if err != nil {
-				return screen.Pic{}, err
+				return nil, err
 			}
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
-					return screen.Pic{}, err
+					return nil, err
 				} else if peek >= 0xf0 {
 					break
 				}
 
 				x2, y2, err := r.getPoint16(x1, y1)
 				if err != nil {
-					return screen.Pic{}, err
+					return nil, err
 				}
 
 				state.line(x1, y1, x2, y2)
@@ -410,18 +410,18 @@ opLoop:
 		case pOpLongLines:
 			x1, y1, err := r.getPoint24()
 			if err != nil {
-				return screen.Pic{}, err
+				return nil, err
 			}
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
-					return screen.Pic{}, err
+					return nil, err
 				} else if peek >= 0xf0 {
 					break
 				}
 
 				x2, y2, err := r.getPoint24()
 				if err != nil {
-					return screen.Pic{}, err
+					return nil, err
 				}
 
 				state.line(x1, y1, x2, y2)
@@ -432,14 +432,14 @@ opLoop:
 		case pOpFills:
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
-					return screen.Pic{}, err
+					return nil, err
 				} else if peek >= 0xf0 {
 					break
 				}
 
 				x, y, err := r.getPoint24()
 				if err != nil {
-					return screen.Pic{}, err
+					return nil, err
 				}
 
 				state.fill(x, y)
@@ -449,7 +449,7 @@ opLoop:
 		case pOpSetPattern:
 			code, err := r.bits.Read8(8)
 			if err != nil {
-				return screen.Pic{}, err
+				return nil, err
 			}
 			state.patternCode = patternCode(code & 0x3f)
 		case pOpShortPatterns:
@@ -458,20 +458,20 @@ opLoop:
 			if !state.patternCode.isSolid() {
 				texture, err := r.bits.Read8(8)
 				if err != nil {
-					return screen.Pic{}, err
+					return nil, err
 				}
 				patternTexture = texture >> 1
 			}
 
 			x, y, err := r.getPoint24()
 			if err != nil {
-				return screen.Pic{}, err
+				return nil, err
 			}
 			state.drawPattern(x, y, patternTexture)
 
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
-					return screen.Pic{}, err
+					return nil, err
 				} else if peek >= 0xf0 {
 					break
 				}
@@ -479,14 +479,14 @@ opLoop:
 				if !state.patternCode.isSolid() {
 					texture, err := r.bits.Read8(8)
 					if err != nil {
-						return screen.Pic{}, err
+						return nil, err
 					}
 					patternTexture = texture >> 1
 				}
 
 				x, y, err = r.getPoint8(x, y)
 				if err != nil {
-					return screen.Pic{}, err
+					return nil, err
 				}
 				state.drawPattern(x, y, patternTexture)
 			}
@@ -496,20 +496,20 @@ opLoop:
 			if !state.patternCode.isSolid() {
 				texture, err := r.bits.Read8(8)
 				if err != nil {
-					return screen.Pic{}, err
+					return nil, err
 				}
 				patternTexture = texture >> 1
 			}
 
 			x, y, err := r.getPoint24()
 			if err != nil {
-				return screen.Pic{}, err
+				return nil, err
 			}
 			state.drawPattern(x, y, patternTexture)
 
 			for {
 				if peek, err := r.bits.Peek8(8); err != nil {
-					return screen.Pic{}, err
+					return nil, err
 				} else if peek >= 0xf0 {
 					break
 				}
@@ -517,14 +517,14 @@ opLoop:
 				if !state.patternCode.isSolid() {
 					texture, err := r.bits.Read8(8)
 					if err != nil {
-						return screen.Pic{}, err
+						return nil, err
 					}
 					patternTexture = texture >> 1
 				}
 
 				x, y, err = r.getPoint16(x, y)
 				if err != nil {
-					return screen.Pic{}, err
+					return nil, err
 				}
 				state.drawPattern(x, y, patternTexture)
 			}
@@ -533,7 +533,7 @@ opLoop:
 				var patternTexture uint8 = 0
 
 				if peek, err := r.bits.Peek8(8); err != nil {
-					return screen.Pic{}, err
+					return nil, err
 				} else if peek >= 0xf0 {
 					break
 				}
@@ -541,14 +541,14 @@ opLoop:
 				if !state.patternCode.isSolid() {
 					texture, err := r.bits.Read8(8)
 					if err != nil {
-						return screen.Pic{}, err
+						return nil, err
 					}
 					patternTexture = texture >> 1
 				}
 
 				x, y, err := r.getPoint24()
 				if err != nil {
-					return screen.Pic{}, err
+					return nil, err
 				}
 				state.drawPattern(x, y, patternTexture)
 			}
@@ -557,26 +557,26 @@ opLoop:
 		case pOpOPX:
 			opx, err := r.bits.Read8(8)
 			if err != nil {
-				return screen.Pic{}, err
+				return nil, err
 			}
 
 			switch pOpxCode(opx) {
 			case pOpxUpdatePalette:
 				for {
 					if peek, err := r.bits.Peek8(8); err != nil {
-						return screen.Pic{}, err
+						return nil, err
 					} else if peek >= 0xf0 {
 						break
 					}
 
 					code, err := r.bits.Read8(8)
 					if err != nil {
-						return screen.Pic{}, err
+						return nil, err
 					}
 
 					color, err := r.bits.Read8(8)
 					if err != nil {
-						return screen.Pic{}, err
+						return nil, err
 					}
 
 					pal, idx := code/40, code%40
@@ -586,11 +586,11 @@ opLoop:
 			case pOpxSetPalette:
 				i, err := r.bits.Read8(8)
 				if err != nil {
-					return screen.Pic{}, err
+					return nil, err
 				}
 				err = binary.Read(r.bits, binary.LittleEndian, &state.palettes[i])
 				if err != nil {
-					return screen.Pic{}, err
+					return nil, err
 				}
 			case pOpxCode(0x02):
 				// TODO this looks like a palette, but not sure what its supposed to be used for...
@@ -600,13 +600,13 @@ opLoop:
 				}
 				err := binary.Read(r.bits, binary.LittleEndian, &pal)
 				if err != nil {
-					return screen.Pic{}, err
+					return nil, err
 				}
 				// state.palettes[pal.I] = pal.P
 			case pOpxCode(0x03), pOpxCode(0x05):
 				// TODO not sure what this byte is for...
 				if err := r.bits.Skip(8); err != nil {
-					return screen.Pic{}, err
+					return nil, err
 				}
 			case pOpxCode(0x04), pOpxCode(0x06):
 				// TODO not sure what this OP is for, but it appears to have no payload
@@ -614,18 +614,18 @@ opLoop:
 				// TODO not sure what this is for (QfG2 uses this op-code)
 				// Vector?
 				if err := r.bits.Skip(24); err != nil {
-					return screen.Pic{}, err
+					return nil, err
 				}
 
 				var length uint16
 				if err := binary.Read(r.bits, binary.LittleEndian, &length); err != nil {
-					return screen.Pic{}, err
+					return nil, err
 				}
 
 				// Payload?
 				for i := uint(0); i < uint(length); i++ {
 					if err := r.bits.Skip(8); err != nil {
-						return screen.Pic{}, err
+						return nil, err
 					}
 				}
 
@@ -633,22 +633,22 @@ opLoop:
 				// TODO not sure what this is for (KQ1-sci0 remake uses this op-code)
 				for {
 					if peek, err := r.bits.Peek8(8); err != nil {
-						return screen.Pic{}, err
+						return nil, err
 					} else if peek >= 0xf0 {
 						break
 					}
 					if err := r.bits.Skip(8); err != nil {
-						return screen.Pic{}, err
+						return nil, err
 					}
 				}
 			default:
-				return screen.Pic{}, fmt.Errorf("unhandled OPX 0x%02x", opx)
+				return nil, fmt.Errorf("unhandled OPX 0x%02x", opx)
 			}
 
 		case pOpDone:
 			break opLoop
 		default:
-			return screen.Pic{}, fmt.Errorf("unhandled OP 0x%02x", op)
+			return nil, fmt.Errorf("unhandled OP 0x%02x", op)
 		}
 
 	}
