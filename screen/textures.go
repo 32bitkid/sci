@@ -10,17 +10,6 @@ type TextureBlock [6][5]bool
 type Texture [][]TextureBlock
 type TextureMap map[uint8]Texture
 
-func (tm TextureMap) getTexture(pair uint8) Texture {
-	if tm == nil {
-		return DefaultTextures.Dither
-	}
-	tex := tm[pair]
-	if tex == nil {
-		return DefaultTextures.Dither
-	}
-	return tex
-}
-
 /* Helpers */
 func TextureFromTemplate(s string) (tex Texture) {
 	var lines [][]rune
@@ -103,7 +92,6 @@ func RandomTexture(w, h uint, size uint) (tex Texture) {
 }
 
 var DefaultTextures = struct {
-	Dither  Texture
 	Dither1 Texture
 	Dither2 Texture
 	Dither3 Texture
@@ -126,21 +114,6 @@ var DefaultTextures = struct {
 	Random4 Texture
 	Random5 Texture
 }{
-	Dither: TextureFromTemplate(`
-XXXXX_____
-XXXXX_____
-XXXXX_____
-XXXXX_____
-XXXXX_____
-XXXXX_____
-_____XXXXX
-_____XXXXX
-_____XXXXX
-_____XXXXX
-_____XXXXX
-_____XXXXX
-`),
-
 	Dither1: TextureFromTemplate(`
 X_X_X_X_X_
 _X_X_X_X_X
