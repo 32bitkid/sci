@@ -20,7 +20,6 @@ func (d *Ditherer) unpack(c uint8) (uint8, uint8) {
 func (d *Ditherer) DitherAt(x, y int, c uint8) uint8 {
 	ditherFn := d.DitherFn
 	if ditherFn == nil {
-		d.DitherFn = dither5050
 		ditherFn = dither5050
 	}
 	c1, c2 := d.unpack(c)
