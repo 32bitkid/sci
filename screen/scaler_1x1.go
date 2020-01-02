@@ -43,7 +43,7 @@ type buffer1x1 struct {
 	stack []point
 }
 
-func (buf *buffer1x1) Image() *image.Paletted {
+func (buf *buffer1x1) Image() image.Image {
 	return buf.Paletted
 }
 
