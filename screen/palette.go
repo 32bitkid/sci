@@ -99,23 +99,23 @@ var DefaultPalettes = struct {
 		rgb24Color(0xffffff),
 	},
 	EGACOM: color.Palette{
-		rgb24Color(0x000000),
-		rgb24Color(0x2c4267),
-		rgb24Color(0x576e54),
-		rgb24Color(0x4a8989),
-		rgb24Color(0x7b2d2f),
-		rgb24Color(0x9d446a),
-		rgb24Color(0x6c4b37),
-		rgb24Color(0x94999e),
+		0x0: rgb(24, 24, 24),
+		0x1: rgb(44, 66, 103),
+		0x2: rgb(83, 138, 106),
+		0x3: rgb(87, 110, 84),
+		0x4: rgb(123, 45, 47),
+		0x5: rgb(157, 68, 106),
+		0x6: rgb(108, 75, 55),
+		0x7: rgb(148, 153, 158),
 
-		rgb24Color(0x52575c),
-		rgb24Color(0x38668b),
-		rgb24Color(0x63b465),
-		rgb24Color(0x82e8e8),
-		rgb24Color(0xd04043),
-		rgb24Color(0xeb7272),
-		rgb24Color(0xf4a66c),
-		rgb24Color(0xffffff),
+		0x8: rgb(82, 87, 92),
+		0x9: rgb(56, 102, 139),
+		0xa: rgb(99, 180, 101),
+		0xb: rgb(130, 232, 232),
+		0xc: rgb(208, 64, 67),
+		0xd: rgb(235, 114, 114),
+		0xe: rgb(230, 196, 57),
+		0xf: rgb(238, 247, 237),
 	},
 }
 
@@ -274,16 +274,21 @@ var DefaultDitherers = struct {
 }
 
 func NewUnditherer(pal color.Palette) *Ditherer {
+	return NewMixDitherer(pal, 0.5)
+}
+
+func NewMixDitherer(pal color.Palette, ratio float64) *Ditherer {
 	newPal := make(color.Palette, len(pal), 256)
 	mapping := ColorMapping{}
 	copy(newPal, pal)
-	for a := uint8(0); a < 0x10; a++ {
-		for b := a + 1; b < 0x10; b++ {
-			idx := uint8(len(newPal))
-			newPal = append(newPal, rgbMix(pal[a], pal[b], 0.5))
-			entry := struct{ c1, c2 uint8 }{idx, idx}
-			mapping[a<<4|b] = entry
-			mapping[b<<4|a] = entry
+	for a := uint8(0); a < 0xf; a++ {
+		for b := a + 1; b < 0xf; b++ {
+			idx1 := uint8(len(newPal))
+			newPal = append(newPal, rgbMix(pal[a], pal[b], ratio))
+			idx2 := uint8(len(newPal))
+			newPal = append(newPal, rgbMix(pal[b], pal[a], ratio))
+			mapping[a<<4|b] = struct{ c1, c2 uint8 }{idx2, idx1}
+			mapping[b<<4|a] = struct{ c1, c2 uint8 }{idx1, idx2}
 		}
 	}
 	return &Ditherer{

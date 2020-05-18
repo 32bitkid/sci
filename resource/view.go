@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"image"
-	"image/draw"
+	"image/color"
 	"image/gif"
 
 	"github.com/32bitkid/sci/screen"
@@ -81,21 +81,8 @@ func NewView(b []byte) (View, error) {
 				}
 			}
 
-			if mirrored {
-				sprite.X = -sprite.X
-				stride := sprite.Width
-				hStride := stride >> 1
-				for y := uint16(0); y < sprite.Height; y++ {
-					offs := y * stride
-					for x := uint16(0); x < (hStride); x++ {
-						a := offs + x
-						b := offs + stride - x - 1
-						bitmap[a], bitmap[b] = bitmap[b], bitmap[a]
-					}
-				}
-			}
-
 			sprite.Pixels = bitmap
+			sprite.Mirrored = mirrored
 			group = append(group, sprite)
 		}
 		view = append(view, group)
@@ -108,19 +95,41 @@ type View []SpriteGroup
 
 type SpriteGroup []Sprite
 
-func (g SpriteGroup) GIF(palette *screen.Ditherer) *gif.GIF {
+type SpriteHeader struct {
+	Width    uint16
+	Height   uint16
+	X        int8
+	Y        int8
+	KeyColor uint8
+}
+
+type Sprite struct {
+	SpriteHeader
+	Mirrored bool
+	Pixels   []uint8
+}
+
+func (group SpriteGroup) GIF(d *screen.Ditherer) *gif.GIF {
+	palette := make(color.Palette, 256)
+	for i := 0; i < 256; i++ {
+		palette[i] = color.Gray{}
+	}
+	copy(palette, d.Palette)
+
+	palette[0xff] = color.RGBA{0xdd, 0xdd, 0xdd, 0xff}
+
 	var images []*image.Paletted
 	var delays []int
 	var dispose []byte
 
 	// FIXME this bounds checking isn't correct
 	rect := image.Rectangle{}
-	for _, s := range g {
-		if rect.Min.X > int(s.X) {
+	for _, s := range group {
+		if int(s.X) < rect.Min.X {
 			rect.Min.X = int(s.X)
 		}
 
-		if rect.Min.Y > int(s.Y) {
+		if int(s.Y) < rect.Min.Y {
 			rect.Min.Y = int(s.Y)
 		}
 
@@ -133,70 +142,48 @@ func (g SpriteGroup) GIF(palette *screen.Ditherer) *gif.GIF {
 	}
 
 	offset := rect.Min
-	rect = rect.Sub(rect.Min)
+	rect = rect.Sub(offset)
+	rect.Max.X *= 5
+	rect.Max.Y *= 6
 
-	for _, s := range g {
-		srcRect := image.Rect(
-			0, 0,
-			int(s.Width), int(s.Height),
-		)
-
-		source := &image.Paletted{
-			Pix:     s.Pixels,
-			Stride:  int(s.Width),
-			Rect:    srcRect,
-			Palette: palette.Palette,
+	for _, s := range group {
+		img := image.NewPaletted(rect, palette)
+		for i := range img.Pix {
+			img.Pix[i] = 0xff
 		}
 
-		mask := image.NewAlpha(srcRect)
-		for i := range mask.Pix {
-			if s.Pixels[i] != s.KeyColor {
-				mask.Pix[i] = 0xff
+		stride := int(s.Width)
+		ox := int(s.X) - offset.X
+		oy := int(s.Y) - offset.Y
+
+		for y := 0; y < int(s.Height); y++ {
+			for x := 0; x < stride; x += 1 {
+				ax := ox + x
+				if s.Mirrored {
+					ax = stride - 1 - x
+				}
+				srcPix := s.Pixels[x+(y*stride)]
+				if srcPix == s.KeyColor {
+					continue
+				}
+				for dy := (oy + y) * 6; dy < ((oy+y)*6)+6; dy++ {
+					for dx := ax * 5; dx < (ax*5)+5; dx++ {
+						img.Pix[dx+(dy*img.Stride)] = srcPix
+					}
+				}
+
 			}
 		}
 
-		img := image.NewPaletted(rect, palette.Palette)
-		for i := range img.Pix {
-			img.Pix[i] = 0x0
-		}
-
-		// TODO actually handle transparency
-		draw.DrawMask(
-			img,
-			image.Rect(
-				int(s.X)-offset.X,
-				int(s.Y)-offset.Y,
-				int(s.Width)+int(s.X)-offset.X,
-				int(s.Height)+int(s.Y)-offset.Y,
-			),
-			source,
-			image.ZP,
-			mask,
-			image.ZP,
-			draw.Src,
-		)
-
 		images = append(images, img)
 		delays = append(delays, 20)
-		dispose = append(dispose, gif.DisposalPrevious)
+		dispose = append(dispose, gif.DisposalBackground)
 	}
 
 	return &gif.GIF{
-		Image:    images,
-		Delay:    delays,
-		Disposal: dispose,
+		Image:           images,
+		Delay:           delays,
+		Disposal:        dispose,
+		BackgroundIndex: 255,
 	}
-}
-
-type SpriteHeader struct {
-	Width    uint16
-	Height   uint16
-	X        int8
-	Y        uint8
-	KeyColor uint8
-}
-
-type Sprite struct {
-	SpriteHeader
-	Pixels []uint8
 }

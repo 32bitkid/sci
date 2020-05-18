@@ -13,6 +13,7 @@ package sci
 
 import (
 	"encoding/binary"
+	"github.com/32bitkid/sci/decompression"
 	"github.com/32bitkid/sci/resource"
 	"os"
 	"path"
@@ -20,7 +21,7 @@ import (
 
 // Root is reference to the root path of a SCI0 game.
 type Root struct {
-	Decompressors resource.DecompressorLUT
+	Decompressors decompression.LUT
 	Path          string
 	Mapping       []resource.Mapping
 }
@@ -28,14 +29,14 @@ type Root struct {
 func NewSCI0Root(path string) Root {
 	return Root{
 		Path:          path,
-		Decompressors: resource.Decompressors.SCI0,
+		Decompressors: decompression.Decompressors.SCI0,
 	}
 }
 
 func NewSCI01Root(path string) Root {
 	return Root{
 		Path:          path,
-		Decompressors: resource.Decompressors.SCI01,
+		Decompressors: decompression.Decompressors.SCI01,
 	}
 }
 
@@ -67,7 +68,7 @@ func (root *Root) LoadMapping() error {
 		// Default to using SCI0 decompressors
 		decompressors := root.Decompressors
 		if decompressors == nil {
-			decompressors = resource.Decompressors.SCI0
+			decompressors = decompression.Decompressors.SCI0
 		}
 
 		mapping := &diskMapping{

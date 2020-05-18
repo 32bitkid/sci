@@ -1,4 +1,4 @@
-package resource
+package decompression
 
 import (
 	"encoding/binary"
@@ -48,8 +48,11 @@ func (h *huffmanState) next(idx int) (uint8, bool, error) {
 	return h.next(idx + next)
 }
 
-func huffman(src io.Reader, dest []uint8) error {
-	var nodeCount uint8
+func huffman(dst io.Writer, src io.Reader, max int) error {
+	var (
+		nodeCount uint8
+		len int
+	)
 	if err := binary.Read(src, binary.LittleEndian, &nodeCount); err != nil {
 		return err
 	}
@@ -69,7 +72,6 @@ func huffman(src io.Reader, dest []uint8) error {
 		nodes: nodes,
 	}
 
-	i := 0
 	for {
 		c, ok, err := huffman.next(0)
 		if err != nil {
@@ -78,12 +80,15 @@ func huffman(src io.Reader, dest []uint8) error {
 		if ok && c == term {
 			break
 		}
-		dest[i] = c
-		i++
+		n, err := dst.Write([]byte{c})
+		if err != nil {
+			return err
+		}
+		len += n
 	}
 
-	if i != len(dest) {
-		return fmt.Errorf("read aborted early. expected(%d) != actual(%d)", len(dest), i)
+	if len != max {
+		return fmt.Errorf("read aborted early. expected(%d) != actual(%d)", max, len)
 	}
 
 	return nil

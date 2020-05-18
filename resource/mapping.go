@@ -7,6 +7,7 @@ type Number uint16
 type Mapping interface {
 	Type() Type
 	Number() Number
+	Stat() (*Header, error)
 
 	Resource() (Resource, error)
 }

@@ -1,7 +1,6 @@
-package resource
+package decompression
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/32bitkid/bitreader"
 	"io"
@@ -12,9 +11,8 @@ type lzwToken struct {
 	next uint16
 }
 
-func lzw1(r io.Reader, dst []byte, max int) error {
+func lzw1(dst io.Writer, r io.Reader, max int) error {
 	br := bitreader.NewReader(r)
-	out := bytes.NewBuffer(dst[:0])
 
 	stack := make([]uint8, 0x1014)
 	tokens := make([]lzwToken, 0x1014)
@@ -27,9 +25,13 @@ func lzw1(r io.Reader, dst []byte, max int) error {
 	)
 
 	var (
+		len int
+		n int
+
 		numBits      uint
 		currentToken uint16
 		endToken     uint16
+
 
 		lastByte   uint8
 		stackDepth uint16
@@ -53,7 +55,12 @@ reset:
 		goto done
 	}
 	lastByte = uint8(bits & 0xff)
-	out.WriteByte(lastByte)
+	n, err = dst.Write([]byte{lastByte})
+	if err != nil {
+		return err
+	}
+
+	len += n
 	lastBits = bits
 
 next:
@@ -88,8 +95,13 @@ next:
 
 	for stackDepth > 0 {
 		stackDepth--
-		out.WriteByte(stack[stackDepth])
-		if max == out.Len() {
+		n, err := dst.Write([]byte{stack[stackDepth]})
+		if err != nil {
+			return err
+		}
+		len += n
+
+		if max == len {
 			goto done
 		}
 	}
@@ -107,8 +119,8 @@ next:
 	goto next
 
 done:
-	if out.Len() != max {
-		return fmt.Errorf("decompression error: expected %d bytes got %d bytes", max, out.Len())
+	if len != max {
+		return fmt.Errorf("decompression error: expected %d bytes got %d bytes", max, len)
 	}
 
 	return nil

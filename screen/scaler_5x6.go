@@ -81,7 +81,7 @@ func (b buffer5x6) plot(x, y int, color uint8) {
 	px, py := x*5, y*6
 	texture, ok := b.TextureMap[color]
 
-	if !ok {
+	if !ok || texture == nil {
 		c := b.DitherAt(x, y, color)
 		for h := 0; h < 6; h++ {
 			for w := 0; w < 5; w++ {

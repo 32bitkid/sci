@@ -28,3 +28,7 @@ func (rgb24 rgb24Color) RGBA() (r, g, b, a uint32) {
 	a = 0xFFFF
 	return
 }
+
+func rgb(r, g, b uint8) color.RGBA {
+	return color.RGBA{r, g, b, 255}
+}
