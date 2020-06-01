@@ -76,7 +76,10 @@ func (b buffer5x6) Image() image.Image {
 }
 
 func (b buffer5x6) plot(x, y int, color uint8) {
-	b.fillBuffer[b.bounds.Dx()*y+x] = b.DitherAt(x, y, color)
+	{
+		c1, c2 := color & 0b1111, color >> 4
+		b.fillBuffer[b.bounds.Dx()*y+x] = dither5050(x, y, c1, c2)
+	}
 
 	px, py := x*5, y*6
 	texture, ok := b.TextureMap[color]
