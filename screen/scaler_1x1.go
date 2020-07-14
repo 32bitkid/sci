@@ -41,6 +41,7 @@ type buffer1x1 struct {
 	*image.Paletted
 	*Ditherer
 	stack []point
+	// TODO implement fill-buffer
 }
 
 func (buf *buffer1x1) Image() image.Image {

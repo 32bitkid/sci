@@ -273,6 +273,44 @@ var DefaultDitherers = struct {
 	},
 }
 
+func NewDitherizer(pal color.Palette, t1 float64, t2 float64) *Ditherer {
+	newPal := make(color.Palette, len(pal), 256)
+	mapping := ColorMapping{}
+	copy(newPal, pal)
+
+	mix := func(a, b uint8) {
+		idx1 := uint8(len(newPal))
+		newPal = append(newPal, rgbMix(pal[a], pal[b], t2))
+		idx2 := uint8(len(newPal))
+		newPal = append(newPal, rgbMix(pal[b], pal[a], t2))
+		mapping[a<<4|b] = struct{ c1, c2 uint8 }{idx2, idx1}
+		mapping[b<<4|a] = struct{ c1, c2 uint8 }{idx1, idx2}
+	}
+
+
+	for a := uint8(0); a < 0xf; a++ {
+		for b := a; b < 0xf; b++ {
+			if a != b {
+				mix(a,b)
+			} else if a != 0 && a != 14 {
+				idx1 := uint8(len(newPal))
+				newPal = append(newPal, lighten(pal[a], t1))
+				idx2 := uint8(len(newPal))
+				newPal = append(newPal, darken(pal[a], t1))
+				mapping[a<<4|a] = struct{ c1, c2 uint8 }{idx1, idx2}
+			}
+		}
+	}
+
+	mix(7,15)
+	mix(12,15)
+
+	return &Ditherer{
+		Palette:      newPal,
+		ColorMapping: mapping,
+	}
+}
+
 func NewUnditherer(pal color.Palette) *Ditherer {
 	return NewMixDitherer(pal, 0.5)
 }
@@ -281,8 +319,8 @@ func NewMixDitherer(pal color.Palette, ratio float64) *Ditherer {
 	newPal := make(color.Palette, len(pal), 256)
 	mapping := ColorMapping{}
 	copy(newPal, pal)
-	for a := uint8(0); a < 0xf; a++ {
-		for b := a + 1; b < 0xf; b++ {
+	for a := uint8(0); a < 0x10; a++ {
+		for b := a + 1; b < 0x10; b++ {
 			idx1 := uint8(len(newPal))
 			newPal = append(newPal, rgbMix(pal[a], pal[b], ratio))
 			idx2 := uint8(len(newPal))
@@ -301,8 +339,8 @@ func NewAdaptiveDithering(in color.Palette, lower, upper float64) *Ditherer {
 	pal := make([]color.Color, 16, 256)
 	copy(pal, in)
 	mapping := ColorMapping{}
-	for c1 := 0; c1 < 0x0f; c1++ {
-		for c2 := c1 + 1; c2 < 0x0f; c2++ {
+	for c1 := 0; c1 < 0x10; c1++ {
+		for c2 := c1 + 1; c2 < 0x10; c2++ {
 			r1, g1, b1, _ := pal[c1].RGBA()
 			r2, g2, b2, _ := pal[c2].RGBA()
 

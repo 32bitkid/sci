@@ -1,2 +1,4 @@
 github.com/32bitkid/bitreader v1.0.1 h1:BlmpTTTL1us9nQ+EUh4M/r5/mY+j4JeC5qOCgL/08ms=
 github.com/32bitkid/bitreader v1.0.1/go.mod h1:wiZHryiWx8YsSuS17YiR7Be4rz6FNxxQl/zs1eWJBMo=
+github.com/lucasb-eyer/go-colorful v1.0.3 h1:QIbQXiugsb+q10B+MI+7DI1oQLdmnep86tWFlaaUAac=
+github.com/lucasb-eyer/go-colorful v1.0.3/go.mod h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=
